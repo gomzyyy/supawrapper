@@ -2,11 +2,9 @@ import { APIResponse } from "../../../response/index.js";
 import { BaseError, ValidationError } from "../../../errors/index.js";
 import { Flag, } from "../../../../types/index.js";
 import { validator } from "../../../../helpers/index.js";
+import { SupawrapperClient } from "../../../base-client/index.js";
 const { amend: { deleteUnwantedValues }, } = validator;
-export class UtilityMethods {
-    supabase;
-    tableName;
-    behaviour;
+export class UtilityMethods extends SupawrapperClient {
     constructor(supabase, tableName, behaviour = {
         supportsSoftDeletion: true,
         softDeleteConfig: {
@@ -17,9 +15,7 @@ export class UtilityMethods {
             returnHintsOnError: false,
         },
     }) {
-        this.supabase = supabase;
-        this.tableName = tableName;
-        this.behaviour = behaviour;
+        super(supabase, tableName, behaviour);
     }
     getDebugLogs(metaData) {
         if (this.behaviour.debug?.returnHintsOnError) {

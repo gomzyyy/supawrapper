@@ -3,14 +3,13 @@ import { BaseError, ValidationError } from "../../../errors/index.js";
 import {
   Callbacks,
   Flag,
-  GetTableOpts,
   Response,
   SoftDeleteConfig,
   TableBehaviour,
-  UpdateTableOpts,
 } from "../../../../types/index.js";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { validator } from "../../../../helpers/index.js";
+import { SupawrapperClient } from "../../../base-client/index.js";
 
 const {
   amend: { deleteUnwantedValues },
@@ -20,11 +19,11 @@ export class UtilityMethods<
   TableFormData,
   GetOptions,
   UpdateOptions
-> {
+> extends SupawrapperClient {
   constructor(
-    protected readonly supabase: SupabaseClient,
-    protected readonly tableName: string,
-    protected readonly behaviour: TableBehaviour = {
+    supabase: SupabaseClient,
+    tableName: string,
+    behaviour: TableBehaviour = {
       supportsSoftDeletion: true,
       softDeleteConfig: {
         flagKey: "is_deleted",
@@ -34,9 +33,12 @@ export class UtilityMethods<
         returnHintsOnError: false,
       },
     }
-  ) {}
+  ) {
+    super(supabase, tableName, behaviour);
+  }
 
   protected getDebugLogs(metaData: any) {
+
     if (this.behaviour.debug?.returnHintsOnError) {
       return {
         ...metaData,

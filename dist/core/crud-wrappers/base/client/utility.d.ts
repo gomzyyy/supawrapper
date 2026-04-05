@@ -1,9 +1,7 @@
 import { Callbacks, Response, SoftDeleteConfig, TableBehaviour } from "../../../../types/index.js";
 import { SupabaseClient } from "@supabase/supabase-js";
-export declare class UtilityMethods<TableFormData, GetOptions, UpdateOptions> {
-    protected readonly supabase: SupabaseClient;
-    protected readonly tableName: string;
-    protected readonly behaviour: TableBehaviour;
+import { SupawrapperClient } from "../../../base-client/index.js";
+export declare class UtilityMethods<TableFormData, GetOptions, UpdateOptions> extends SupawrapperClient {
     constructor(supabase: SupabaseClient, tableName: string, behaviour?: TableBehaviour);
     protected getDebugLogs(metaData: any): any;
     protected withLoading<T>(cbs: Callbacks | undefined, cb: () => Promise<T>): Promise<T>;
