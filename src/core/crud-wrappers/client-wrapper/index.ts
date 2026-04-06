@@ -10,6 +10,7 @@ import {
 import { BaseClientCRUDWrapper } from "../base/client/index.js";
 import { APIResponse } from "@/core/response/index.js";
 import { APIError } from "@/core/errors/index.js";
+import { defaultTableBehaviour } from "./defaults.js";
 type ExistsFunctionOmitKeys = "validator" | "amendArgs";
 
 /**
@@ -30,7 +31,7 @@ export class ClientWrapper<
   constructor(
     supabase: SupabaseClient,
     tableName: string,
-    behaviour?: TableBehaviour
+    behaviour: TableBehaviour = defaultTableBehaviour
   ) {
     super(supabase, tableName, behaviour);
   }
