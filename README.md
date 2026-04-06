@@ -1,11 +1,11 @@
 # Supawrapper
 
 <p align="center">
-  A clean, type-safe, developer-friendly CRUD wrapper for Supabase.
+  <strong>A type-safe, developer-first Supabase wrapper for CRUD and Realtime operations.</strong>
 </p>
 
 <p align="center">
-  Write less boilerplate. Ship faster.
+  Reduce boilerplate. Improve DX. Ship faster.
 </p>
 
 <p align="center">
@@ -15,28 +15,30 @@
   <img alt="supabase" src="https://img.shields.io/badge/Supabase-Compatible-green" />
 </p>
 
+> 🚧 **Early release notice**
+>
+> `supawrapper` is actively evolving and improving.
+> If you encounter any bugs, DX issues, or have feature suggestions, please **feel free to open an Issue or PR**.
+> Community feedback is highly appreciated ❤️
+
 ---
 
-## Overview
+## ✨ Features
 
-`supawrapper` is a lightweight and strongly-typed CRUD abstraction layer built on top of `@supabase/supabase-js`.
-
-It helps developers reduce repetitive query boilerplate by providing:
-
-- CRUD methods
-- filtering utilities
-- bulk operations
-- pagination
-- soft deletion support
-- debug hints
+- Fully typed CRUD wrapper
+- Realtime listeners
+- Broadcast channels
+- Soft delete support
+- Batch updates
+- Bulk inserts
+- Query filters
+- Channel lifecycle management
 - TypeScript-first API
-- reusable table wrappers
-
-Instead of writing repetitive Supabase queries for every table, you can create a wrapper once and use a clean service-like API.
+- Developer-friendly abstractions
 
 ---
 
-## Installation
+## 📦 Installation
 
 ```bash
 npm install supawrapper @supabase/supabase-js
@@ -56,16 +58,25 @@ pnpm add supawrapper @supabase/supabase-js
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
 ```ts
 import { createClient } from "@supabase/supabase-js";
-import { ClientWrapper } from "supawrapper";
+import {
+  ClientWrapper,
+  RealtimeListener,
+  BroadcastChannel
+} from "supawrapper";
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-const users = new ClientWrapper<User>(supabase, "users");
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_ANON_KEY!
+);
 ```
+
+---
+
+# 📘 CRUD Wrapper
 
 ---
 
@@ -83,50 +94,55 @@ interface User {
 
 ---
 
-## Basic Usage
-
----
-
-### Create One Record
+## Create Wrapper
 
 ```ts
-const res = await users.createOne({
-  name: "Gomzy",
-  email: "gomzy@example.com",
-  is_active: true,
-});
-
-console.log(res.data);
+const users = new ClientWrapper<User>(
+  supabase,
+  "users"
+);
 ```
 
 ---
 
-### Create Multiple Records
+## Create One
+
+```ts
+await users.createOne({
+  name: "Gomzy",
+  email: "gomzy@example.com",
+  is_active: true,
+});
+```
+
+---
+
+## Create Many
 
 ```ts
 await users.createMany([
   {
     name: "User 1",
-    email: "user1@test.com",
+    email: "u1@test.com",
   },
   {
     name: "User 2",
-    email: "user2@test.com",
+    email: "u2@test.com",
   },
 ]);
 ```
 
 ---
 
-### Get By ID
+## Get By ID
 
 ```ts
-const res = await users.getById("user-id");
+const user = await users.getById("user-id");
 ```
 
 ---
 
-### Get Records with Filters
+## Get With Filters
 
 ```ts
 const res = await users.get({
@@ -136,15 +152,15 @@ const res = await users.get({
       value: true,
     },
   ],
-  limit: 10,
   sortBy: "created_at",
-  orderBy: "dec",
+  order: "desc",
+  limit: 10,
 });
 ```
 
 ---
 
-### Update One Record
+## Update By ID
 
 ```ts
 await users.updateById("user-id", {
@@ -154,7 +170,7 @@ await users.updateById("user-id", {
 
 ---
 
-### Batch Update
+## Batch Update
 
 ```ts
 await users.batchUpdate(
@@ -174,25 +190,39 @@ await users.batchUpdate(
 
 ---
 
-### Delete Permanently
+## Delete By ID
 
 ```ts
-await users.deleteOneByIDPermanent("user-id");
+await users.deleteById("user-id");
 ```
 
 ---
 
-### Check If Record Exists
+## Soft Delete / Restore
+
+```ts
+await users.setSoftDeletedById(
+  "user-id",
+  true
+);
+
+await users.setSoftDeletedById(
+  "user-id",
+  false
+);
+```
+
+---
+
+## Exists
 
 ```ts
 const exists = await users.exists("user-id");
-
-console.log(exists.data); // true / false
 ```
 
 ---
 
-### Count Records
+## Count
 
 ```ts
 const count = await users.count({
@@ -207,148 +237,154 @@ const count = await users.count({
 
 ---
 
-## Filtering Options
+# ⚡ Realtime Listener
 
-`supawrapper` provides flexible filtering utilities.
+Listen to table changes in real time.
 
 ---
 
-### Equality Filter
+## Create Listener
 
 ```ts
-{
-  eq: [
-    {
-      key: "status",
-      value: "active"
-    }
-  ]
-}
+const userListener =
+  new RealtimeListener<User>(
+    supabase,
+    "users"
+  );
 ```
 
 ---
 
-### Contains
+## Listen for Inserts
 
 ```ts
-{
-  contains: [
-    {
-      key: "tags",
-      value: "typescript"
-    }
-  ]
-}
-```
-
----
-
-### ILIKE Search
-
-```ts
-{
-  ilike: [
-    {
-      key: "name",
-      value: "%gomzy%"
-    }
-  ]
-}
-```
-
----
-
-### IN Filter
-
-```ts
-{
-  inValue: {
-    key: "role",
-    value: ["admin", "editor"]
-  }
-}
-```
-
----
-
-### OR Conditions
-
-```ts
-{
-  or: "role.eq.admin,is_active.eq.true"
-}
-```
-
----
-
-### Pagination
-
-```ts
-{
-  page: 1,
-  limit: 20
-}
-```
-
----
-
-## Soft Delete Support
-
-Enable soft deletion using `TableBehaviour`.
-
----
-
-### Setup
-
-```ts
-const users = new ClientWrapper<User>(supabase, "users", {
-  supportsSoftDeletion: true,
-  softDeleteConfig: {
-    timestampKey: "deleted_at",
-    flagKey: "is_deleted",
-  },
+userListener.onInsert((payload) => {
+  console.log("Inserted:", payload.new);
 });
 ```
 
 ---
 
-### Soft Delete Record
+## Listen for Updates
 
 ```ts
-await users.setSoftDeletedById("user-id", true);
-```
-
----
-
-### Restore Record
-
-```ts
-await users.setSoftDeletedById("user-id", false);
-```
-
----
-
-## Table Behaviour Configuration
-
-```ts
-const users = new ClientWrapper<User>(supabase, "users", {
-  supportsSoftDeletion: true,
-  debug: {
-    returnHintsOnError: true,
-    hintsConfig: {
-      includeArguments: true,
-      includeRawResults: true,
-      includeTableMetadata: true,
-    },
-  },
+userListener.onUpdate((payload) => {
+  console.log("Updated:", payload.new);
 });
 ```
 
 ---
 
-## Exported Types
+## Listen for Deletes
 
-`supawrapper` exports useful types for full TypeScript support.
+```ts
+userListener.onDelete((payload) => {
+  console.log("Deleted:", payload.old);
+});
+```
+
+---
+
+## Listen for All Changes
+
+```ts
+userListener.onChange((payload) => {
+  console.log("Changed:", payload);
+});
+```
+
+---
+
+## Cleanup Listener
+
+```ts
+await userListener.unsubscribe();
+```
+
+---
+
+## Custom Channel ID
+
+Useful when creating multiple listeners for the same table.
+
+```ts
+const listener =
+  new RealtimeListener<User>(
+    supabase,
+    "users",
+    "dashboard-live"
+  );
+```
+
+---
+
+# 📡 Broadcast Channel
+
+Use custom realtime channels for app-level events like chat, notifications, and collaboration.
+
+---
+
+## Create Channel
+
+```ts
+const chat =
+  new BroadcastChannel(
+    supabase,
+    "chat-room"
+  );
+```
+
+---
+
+## Subscribe
+
+```ts
+chat.subscribe();
+```
+
+---
+
+## Send Event
+
+```ts
+await chat.send("message", {
+  text: "Hello world",
+});
+```
+
+---
+
+## Listen to Event
+
+```ts
+chat.on("message", (payload) => {
+  console.log(payload);
+});
+```
+
+---
+
+## Cleanup
+
+```ts
+await chat.unsubscribe();
+```
+
+---
+
+# 🧠 Exported API
+
+```ts
+import {
+  ClientWrapper,
+  RealtimeListener,
+  BroadcastChannel,
+} from "supawrapper";
+```
+
+---
+
+# 📦 Exported Types
 
 ```ts
 import type {
@@ -362,82 +398,21 @@ import type {
 
 ---
 
-## Exported API
+# 🛣 Roadmap
 
-Currently exposed public API:
+Upcoming features:
 
-```ts
-export { ClientWrapper }
-```
-
-Supported methods:
-
-- `createOne()`
-- `createMany()`
-- `getById()`
-- `get()`
-- `updateById()`
-- `batchUpdate()`
-- `deleteOneById()`
-- `setSoftDeletedById()`
-- `exists()`
-- `count()`
-
----
-
-## Why Supawrapper?
-
-Supabase is amazing, but repeated CRUD code across tables quickly becomes repetitive.
-
-Instead of writing:
-
-```ts
-supabase.from("users").select("*").eq("id", id)
-```
-
-again and again…
-
-Use:
-
-```ts
-users.getById(id)
-```
-
-Cleaner.
-More readable.
-More reusable.
-
----
-
-## Best Use Cases
-
-Perfect for:
-
-- SaaS dashboards
-- admin panels
-- CMS projects
-- internal tools
-- scalable service layers
-- reusable repositories
-
----
-
-## Roadmap
-
-Planned features:
-
-- auth wrapper
-- storage wrapper
-- realtime wrapper
-- bucket utilities
-- stream upload/download
-- server wrapper
+- Storage wrapper
+- Auth wrapper
+- Presence channels
+- Server-side wrapper
+- Query chaining
 - CLI support
-- auto schema helpers
+- Schema helpers
 
 ---
 
-## Contributing
+# 🤝 Contributing
 
 Contributions, issues, and feature requests are welcome.
 
@@ -445,12 +420,12 @@ Feel free to open a PR or issue.
 
 ---
 
-## License
+# 📄 License
 
 MIT License
 
 ---
 
-## Author
+# ❤️ Author
 
-Built with ❤️ by **Gomzy Dhingra**
+Built with love by **Gomzy Dhingra**
