@@ -1,153 +1,119 @@
-# Supabase CRUD Wrapper
+# Supawrapper
 
-A fully generic, **TypeScript-first CRUD wrapper** built on top of **Supabase** that provides a clean and developer-friendly API similar to ORMs / ODMs like Mongoose.
+<p align="center">
+  A clean, type-safe, developer-friendly CRUD wrapper for Supabase.
+</p>
 
-This package helps eliminate repetitive CRUD boilerplate by exposing reusable methods such as:
+<p align="center">
+  Write less boilerplate. Ship faster.
+</p>
 
-- `createOne()`
-- `updateOneById()`
-- `getById()`
-- `get()`
-- `batchUpdate()`
-- `deleteOneByIDPermanent()`
-- `toogleSoftDeleteOneById()`
-
-It also includes:
-
-- Strong TypeScript support
-- Built-in error handling
-- Payload validation / cleanup
-- Loading state callbacks
-- Conditional payload amendments
-- Flexible filtering system
-- Soft delete support
+<p align="center">
+  <img alt="npm" src="https://img.shields.io/npm/v/supawrapper" />
+  <img alt="license" src="https://img.shields.io/npm/l/supawrapper" />
+  <img alt="typescript" src="https://img.shields.io/badge/TypeScript-Friendly-blue" />
+  <img alt="supabase" src="https://img.shields.io/badge/Supabase-Compatible-green" />
+</p>
 
 ---
 
-## Why This Package?
+## Overview
 
-When working with Supabase, developers often repeat the same CRUD logic for every table.
+`supawrapper` is a lightweight and strongly-typed CRUD abstraction layer built on top of `@supabase/supabase-js`.
 
-Example:
+It helps developers reduce repetitive query boilerplate by providing:
 
-```ts
-await supabase.from("users").update(payload).eq("id", userId);
-```
+- CRUD methods
+- filtering utilities
+- bulk operations
+- pagination
+- soft deletion support
+- debug hints
+- TypeScript-first API
+- reusable table wrappers
 
-This gets repeated across:
-
-- users
-- projects
-- tasks
-- products
-- content rows
-- any other table
-
-This package abstracts all of that into a reusable class-based wrapper.
-
----
-
-## Features
-
-- Fully generic CRUD wrapper
-- Strong TypeScript support
-- Flexible query filters
-- Reusable error classes
-- Consistent response structure
-- Soft delete support
-- Batch update support
-- Search and sorting support
-- Callback support for UI loading states
-
----
-
-## Folder Structure
-
-```text
-src/
-│
-├── core/
-│   ├── crud-wrapper/
-│   ├── response/
-│   ├── errors/
-│
-├── helpers/
-│   ├── validators/
-│
-├── types/
-│
-└── index.ts
-```
-
----
-
-## Architecture
-
-```text
-Consumer App
-     ↓
-CRUDWrapper
-     ↓
-Validators / Errors / Helpers
-     ↓
-Supabase SDK
-     ↓
-Postgres Database
-```
+Instead of writing repetitive Supabase queries for every table, you can create a wrapper once and use a clean service-like API.
 
 ---
 
 ## Installation
 
 ```bash
-npm install PACKAGE_NAME
+npm install supawrapper @supabase/supabase-js
+```
+
+or
+
+```bash
+yarn add supawrapper @supabase/supabase-js
+```
+
+or
+
+```bash
+pnpm add supawrapper @supabase/supabase-js
+```
+
+---
+
+## Quick Start
+
+```ts
+import { createClient } from "@supabase/supabase-js";
+import { ClientWrapper } from "supawrapper";
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const users = new ClientWrapper<User>(supabase, "users");
+```
+
+---
+
+## Define Your Table Type
+
+```ts
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  is_active: boolean;
+  created_at: string;
+}
 ```
 
 ---
 
 ## Basic Usage
 
+---
+
+### Create One Record
+
 ```ts
-import { CRUDWrapper } from "PACKAGE_NAME";
-import { createClient } from "@supabase/supabase-js";
+const res = await users.createOne({
+  name: "Gomzy",
+  email: "gomzy@example.com",
+  is_active: true,
+});
 
-const supabase = createClient(URL, KEY);
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
-
-interface UserPayload {
-  name?: string;
-  email?: string;
-}
-
-const users = new CRUDWrapper<User, UserPayload>(supabase, "users");
+console.log(res.data);
 ```
 
 ---
 
-## Methods
-
-### Create One
+### Create Multiple Records
 
 ```ts
-const response = await users.createOne({
-  name: "John",
-  email: "john@example.com",
-});
-```
-
----
-
-### Update By ID
-
-```ts
-const response = await users.updateOneById("123", {
-  name: "Updated Name",
-});
+await users.createMany([
+  {
+    name: "User 1",
+    email: "user1@test.com",
+  },
+  {
+    name: "User 2",
+    email: "user2@test.com",
+  },
+]);
 ```
 
 ---
@@ -155,21 +121,34 @@ const response = await users.updateOneById("123", {
 ### Get By ID
 
 ```ts
-const response = await users.getById("123");
+const res = await users.getById("user-id");
 ```
 
 ---
 
-### Get With Filters
+### Get Records with Filters
 
 ```ts
-const response = await users.get({
+const res = await users.get({
   eq: [
     {
       key: "is_active",
       value: true,
     },
   ],
+  limit: 10,
+  sortBy: "created_at",
+  orderBy: "dec",
+});
+```
+
+---
+
+### Update One Record
+
+```ts
+await users.updateById("user-id", {
+  name: "Updated Name",
 });
 ```
 
@@ -178,15 +157,15 @@ const response = await users.get({
 ### Batch Update
 
 ```ts
-const response = await users.batchUpdate(
+await users.batchUpdate(
   {
-    role: "inactive_user",
+    is_active: false,
   },
   {
     eq: [
       {
-        key: "is_active",
-        value: false,
+        key: "role",
+        value: "inactive",
       },
     ],
   }
@@ -198,139 +177,280 @@ const response = await users.batchUpdate(
 ### Delete Permanently
 
 ```ts
-await users.deleteOneByIDPermanent("123");
+await users.deleteOneByIDPermanent("user-id");
 ```
 
 ---
 
-### Soft Delete
+### Check If Record Exists
 
 ```ts
-await users.toogleSoftDeleteOneById("123", true);
+const exists = await users.exists("user-id");
+
+console.log(exists.data); // true / false
 ```
 
 ---
 
-## Loading Callback Support
-
-Useful for frontend applications:
+### Count Records
 
 ```ts
-await users.get(
-  {},
-  {
-    onLoadingStateChange: (loading) => {
-      console.log(loading);
+const count = await users.count({
+  eq: [
+    {
+      key: "is_active",
+      value: true,
     },
-  }
-);
+  ],
+});
 ```
 
 ---
 
-## Amend Payload Before Request
+## Filtering Options
 
-Allows conditional payload modifications before request execution:
+`supawrapper` provides flexible filtering utilities.
+
+---
+
+### Equality Filter
 
 ```ts
-await users.createOne(
-  {
-    name: "John",
+{
+  eq: [
+    {
+      key: "status",
+      value: "active"
+    }
+  ]
+}
+```
+
+---
+
+### Contains
+
+```ts
+{
+  contains: [
+    {
+      key: "tags",
+      value: "typescript"
+    }
+  ]
+}
+```
+
+---
+
+### ILIKE Search
+
+```ts
+{
+  ilike: [
+    {
+      key: "name",
+      value: "%gomzy%"
+    }
+  ]
+}
+```
+
+---
+
+### IN Filter
+
+```ts
+{
+  inValue: {
+    key: "role",
+    value: ["admin", "editor"]
+  }
+}
+```
+
+---
+
+### OR Conditions
+
+```ts
+{
+  or: "role.eq.admin,is_active.eq.true"
+}
+```
+
+---
+
+### Pagination
+
+```ts
+{
+  page: 1,
+  limit: 20
+}
+```
+
+---
+
+## Soft Delete Support
+
+Enable soft deletion using `TableBehaviour`.
+
+---
+
+### Setup
+
+```ts
+const users = new ClientWrapper<User>(supabase, "users", {
+  supportsSoftDeletion: true,
+  softDeleteConfig: {
+    timestampKey: "deleted_at",
+    flagKey: "is_deleted",
   },
-  {
-    amendArgs: ({ formData }) => ({
-      ...formData,
-      created_at: new Date().toISOString(),
-    }),
-  }
-);
+});
 ```
 
 ---
 
-## Response Format
-
-All methods return a standardized response:
+### Soft Delete Record
 
 ```ts
-{
-  data: ...,
-  error: ...,
-  flag: ...
-}
-```
-
-This ensures consistent handling across all operations.
-
----
-
-## Error Handling
-
-Includes reusable custom error classes:
-
-- `BaseError`
-- `APIError`
-- `ValidationError`
-- `InternalError`
-
-These are internally mapped to standardized API responses.
-
----
-
-## Build
-
-To build the package:
-
-```bash
-npm run build
-```
-
-This compiles:
-
-```text
-src/
-```
-
-into:
-
-```text
-dist/
+await users.setSoftDeletedById("user-id", true);
 ```
 
 ---
 
-## Production Notes
+### Restore Record
 
-Keep `src` for development.
-
-Only publish `dist` in npm package.
-
-Recommended `package.json`:
-
-```json
-{
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "files": ["dist", "README.md"]
-}
+```ts
+await users.setSoftDeletedById("user-id", false);
 ```
 
 ---
 
-## Future Scope
+## Table Behaviour Configuration
 
-Planned improvements:
+```ts
+const users = new ClientWrapper<User>(supabase, "users", {
+  supportsSoftDeletion: true,
+  debug: {
+    returnHintsOnError: true,
+    hintsConfig: {
+      includeArguments: true,
+      includeRawResults: true,
+      includeTableMetadata: true,
+    },
+  },
+});
+```
 
-- pagination helpers
-- middleware hooks
-- query builder extensions
-- transactions
-- caching
-- audit logging
-- plugin architecture
+---
+
+## Exported Types
+
+`supawrapper` exports useful types for full TypeScript support.
+
+```ts
+import type {
+  CRUDOptions,
+  GetTableOpts,
+  UpdateTableOpts,
+  TableBehaviour,
+  Callbacks,
+} from "supawrapper";
+```
+
+---
+
+## Exported API
+
+Currently exposed public API:
+
+```ts
+export { ClientWrapper }
+```
+
+Supported methods:
+
+- `createOne()`
+- `createMany()`
+- `getById()`
+- `get()`
+- `updateById()`
+- `batchUpdate()`
+- `deleteOneById()`
+- `setSoftDeletedById()`
+- `exists()`
+- `count()`
+
+---
+
+## Why Supawrapper?
+
+Supabase is amazing, but repeated CRUD code across tables quickly becomes repetitive.
+
+Instead of writing:
+
+```ts
+supabase.from("users").select("*").eq("id", id)
+```
+
+again and again…
+
+Use:
+
+```ts
+users.getById(id)
+```
+
+Cleaner.
+More readable.
+More reusable.
+
+---
+
+## Best Use Cases
+
+Perfect for:
+
+- SaaS dashboards
+- admin panels
+- CMS projects
+- internal tools
+- scalable service layers
+- reusable repositories
+
+---
+
+## Roadmap
+
+Planned features:
+
+- auth wrapper
+- storage wrapper
+- realtime wrapper
+- bucket utilities
+- stream upload/download
+- server wrapper
+- CLI support
+- auto schema helpers
+
+---
+
+## Contributing
+
+Contributions, issues, and feature requests are welcome.
+
+Feel free to open a PR or issue.
 
 ---
 
 ## License
 
-MIT
+MIT License
+
+---
+
+## Author
+
+Built with ❤️ by **Gomzy Dhingra**

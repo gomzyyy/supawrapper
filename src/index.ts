@@ -1,4 +1,4 @@
-export { ClientWrapper } from "./core/index.js";
+export { ClientWrapper, RealtimeListener, BroadcastWrapper } from "./core/index.js";
 export {
   type Callbacks,
   type Flag,
