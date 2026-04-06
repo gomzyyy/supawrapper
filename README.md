@@ -1,42 +1,94 @@
-# Supawrapper
+# 🚀 Supawrapper
 
+```{=html}
 <p align="center">
-  <strong>A type-safe, developer-first Supabase wrapper for CRUD and Realtime operations.</strong>
+```
+`<strong>`{=html}⚡ MongoDB-like experience for
+Supabase`</strong>`{=html}
+```{=html}
 </p>
-
+```
+```{=html}
 <p align="center">
-  Reduce boilerplate. Improve DX. Ship faster.
+```
+A type-safe, developer-first data layer for Supabase.
+```{=html}
 </p>
-
+```
+```{=html}
 <p align="center">
-  <img alt="npm" src="https://img.shields.io/npm/v/supawrapper" />
-  <img alt="license" src="https://img.shields.io/npm/l/supawrapper" />
-  <img alt="typescript" src="https://img.shields.io/badge/TypeScript-Friendly-blue" />
-  <img alt="supabase" src="https://img.shields.io/badge/Supabase-Compatible-green" />
+```
+Reduce boilerplate. Improve DX. Ship faster.
+```{=html}
 </p>
+```
+```{=html}
+<p align="center">
+```
+`<img alt="npm" src="https://img.shields.io/npm/v/supawrapper" />`{=html}
+`<img alt="license" src="https://img.shields.io/npm/l/supawrapper" />`{=html}
+`<img alt="typescript" src="https://img.shields.io/badge/TypeScript-Friendly-blue" />`{=html}
+`<img alt="supabase" src="https://img.shields.io/badge/Supabase-Compatible-green" />`{=html}
+```{=html}
+</p>
+```
 
-> 🚧 **Early release notice**
->
-> `supawrapper` is actively evolving and improving.
-> If you encounter any bugs, DX issues, or have feature suggestions, please **feel free to open an Issue or PR**.
-> Community feedback is highly appreciated ❤️
+------------------------------------------------------------------------
 
----
+## 😩 The Problem (Why this exists)
+
+If you've used Supabase, you already know:
+
+``` ts
+const { data, error } = await supabase
+  .from("users")
+  .select("*")
+  .eq("is_active", true)
+  .order("created_at", { ascending: false })
+  .limit(10);
+```
+
+-   ❌ Verbose & repetitive\
+-   ❌ Hard to reuse queries\
+-   ❌ Logic scattered across code\
+-   ❌ Realtime setup is repetitive\
+-   ❌ Debugging is manual and painful
+
+------------------------------------------------------------------------
+
+## ✅ The Solution
+
+``` ts
+const users = new ClientWrapper<User>(supabase, "users");
+
+const data = await users.get({
+  eq: [{ key: "is_active", value: true }],
+  sortBy: "created_at",
+  orderBy: "dec",
+  limit: 10,
+});
+```
+
+------------------------------------------------------------------------
+
+## 🔒 Works With Your Existing Supabase Setup
+
+Supawrapper does NOT replace your Supabase client.
+
+------------------------------------------------------------------------
 
 ## ✨ Features
 
-- Fully typed CRUD wrapper
-- Realtime listeners
-- Broadcast channels
-- Soft delete support
-- Batch updates
-- Bulk inserts
-- Query filters
-- Channel lifecycle management
-- TypeScript-first API
-- Developer-friendly abstractions
+-   Fully typed CRUD wrapper
+-   Realtime listeners
+-   Broadcast channels
+-   Soft delete support
+-   Batch updates
+-   Bulk inserts
+-   Query filters
+-   Developer-friendly abstractions
 
----
+------------------------------------------------------------------------
 
 ## 📦 Installation
 
