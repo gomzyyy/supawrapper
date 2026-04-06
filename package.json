@@ -1,6 +1,6 @@
 {
   "name": "supawrapper",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "A TypeScript package that wraps the Supabase client in a reusable class and exposes common methods for Create, Read, Update, and Delete operations.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

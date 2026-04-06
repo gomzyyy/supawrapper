@@ -31,6 +31,10 @@ export class BaseClientCRUDWrapper<
 
   /**
    * @method rawQuery() Allows you to run custom Supabase queries on the table. It accepts a callback function that receives the raw query builder and returns the result. This method is useful for operations that are not covered by the standard CRUD methods.
+   * @param queryCallback Callback function that receives the raw query builder and returns the query result.
+   * @param data Optional payload data to be used in the query.
+   * @param cbs Optional callbacks for track loading states and handling errors.
+   * @returns A promise resolving to a unified Response object containing the query result.
    */
   async rawQuery<R = any>(
     queryCallback: (query: ReturnType<SupabaseClient["from"]>, data?: Partial<Table>) => any,
@@ -79,6 +83,10 @@ export class BaseClientCRUDWrapper<
 
   /**
    * @method createOne() Creates a new record in the specified table with the provided data. It accepts optional callbacks for managing loading state and allows for falsy values in the payload if specified in the options. The method prepares the payload, executes the insert operation, and returns the created record wrapped in a Response object. If an error occurs during the operation, it is handled gracefully and returned as an APIError response.
+   * @param data Data for the record to be created.
+   * @param cbs Optional callbacks for reacting to loading states.
+   * @param opts Insert configuration options, for example whether to allow falsy fields into payload.
+   * @returns A promise resolving to a Response wrapper containing the created record.
    */
   async createOne(
     data: Partial<Table> | Table,
@@ -122,8 +130,12 @@ export class BaseClientCRUDWrapper<
       }
     });
   }
+
+
   /**
    * @method createMany() Creates multiple records in the specified table with the provided array of data. The method executes a bulk insert operation and returns the created records wrapped in a Response object. If an error occurs during the operation, it is handled gracefully and returned as an APIError response.
+   * @param arr Array of record configurations to be created.
+   * @returns A promise resolving to a Response containing an array of successfully created records.
    */
   async createMany(
     arr: Partial<Table>[] | Table[]
@@ -165,8 +177,116 @@ export class BaseClientCRUDWrapper<
       }
     });
   }
+
+  /**
+   * @method upsertOne() Inserts or updates a single record in the specified table with the provided data. It accepts optional callbacks for managing loading state and uses the table's unique identifiers for conflict resolution. The method prepares the payload, executes the upsert operation, and returns the created or updated record wrapped in a Response object. If an error occurs during the operation, it is handled gracefully and returned as an APIError response.
+   * @param data Record payload used for the upsert operation.
+   * @param cbs Optional callbacks to track loading states natively.
+   * @returns A promise resolving to a Response containing the upserted record.
+   */
+  async upsertOne(
+    data: Partial<Table> | Table,
+    cbs?: Callbacks
+  ): Promise<Response<Table>> {
+    return this.withLoading(cbs, async () => {
+      try {
+        const payload = this.preparePayload(data, cbs);
+
+        const validatedPayload = this.validateSchema<Partial<Table>>(
+          payload,
+          this.behaviour.validator?.schema,
+          !!this.behaviour.validator?.enabled
+        );
+
+        const finalPayload = this.updateTimestamps<Partial<Table>>(validatedPayload);
+
+        const onConflict = this.behaviour.uniqueIdentifiers?.length
+          ? this.behaviour.uniqueIdentifiers.join(",")
+          : undefined;
+
+        const { data: apiData, error } = await this.supabase
+          .from(this.tableName)
+          .upsert(finalPayload, { onConflict })
+          .select("*")
+          .maybeSingle();
+
+        if (error) {
+          const hints = this.getDebugLogs({
+            rawPayload: data,
+            injectedPayload: finalPayload,
+            operation: "upsertOne",
+            rawOutput: { data: apiData, error },
+          });
+          throw new APIError(error.message, hints, error);
+        }
+
+        return new APIResponse(apiData || null, Flag.Success).build();
+      } catch (error) {
+        return this.handleError(error);
+      }
+    });
+  }
+
+  /**
+   * @method upsertMany() Inserts or updates multiple records in the specified table with the provided array of data. It accepts optional callbacks for managing loading state and uses the table's unique identifiers for conflict resolution. The method executes a bulk upsert operation and returns the created or updated records wrapped in a Response object. If an error occurs during the operation, it is handled gracefully and returned as an APIError response.
+   * @param data Array of records to bulk upsert.
+   * @param cbs Optional loading state callbacks.
+   * @returns A promise resolving to a Response containing an array of upserted records.
+   */
+  async upsertMany(
+    data: (Partial<Table> | Table)[],
+    cbs?: Callbacks
+  ): Promise<Response<Table[]>> {
+    return this.withLoading(cbs, async () => {
+      try {
+        const payloads = data.map((d) => this.preparePayload(d, cbs));
+
+        const validatedPayloads = payloads.map((p) =>
+          this.validateSchema<Partial<Table>>(
+            p,
+            this.behaviour.validator?.schema,
+            !!this.behaviour.validator?.enabled
+          )
+        );
+
+        const finalPayloads = validatedPayloads.map((p) =>
+          this.updateTimestamps<Partial<Table>>(p)
+        );
+
+        const onConflict = this.behaviour.uniqueIdentifiers?.length
+          ? this.behaviour.uniqueIdentifiers.join(",")
+          : undefined;
+
+        const { data: apiData, error } = await this.supabase
+          .from(this.tableName)
+          .upsert(finalPayloads, { onConflict })
+          .select("*");
+
+        if (error) {
+          const hints = this.getDebugLogs({
+            rawPayload: data,
+            injectedPayload: finalPayloads,
+            operation: "upsertMany",
+            rawOutput: { data: apiData, error },
+          });
+          throw new APIError(error.message, hints, error);
+        }
+
+        return new APIResponse(apiData || [], Flag.Success).build();
+      } catch (error) {
+        return this.handleError(error);
+      }
+    });
+  }
+
+
   /**
    * @method updateById() Updates a single record identified by its ID with the provided update data. It accepts optional callbacks for managing loading state and allows for falsy values in the update payload if specified in the options. The method prepares the payload, executes the update operation, and returns the updated record wrapped in a Response object. If an error occurs during the operation, it is handled gracefully and returned as an APIError response.
+   * @param tableId The ID linking to the exact record inside the table.
+   * @param update Partial object containing the changes applying to the record.
+   * @param cbs Optional callbacks to listen on loading states.
+   * @param opts Internal database update configuration flags (e.g. `allowFalsy` boolean).
+   * @returns A promise resolving to a Response tracking the completed updated record.
    */
   async updateById(
     tableId: string,
@@ -220,6 +340,9 @@ export class BaseClientCRUDWrapper<
   }
   /**
    * @method getById() Retrieves a single record from the specified table by its ID. It accepts optional callbacks for managing loading state. The method executes a select operation and returns the retrieved record wrapped in a Response object. If an error occurs during the operation, it is handled gracefully and returned as an APIError response.
+   * @param tableId Evaluated unique string mapped to the ID within Supabase.
+   * @param cbs Optional callbacks binding loading scopes.
+   * @returns A promise unlocking a unified Response containing the requested record.
    */
   async getById(tableId: string, cbs?: Callbacks): Promise<Response<Table>> {
     return this.withLoading(cbs, async () => {
@@ -251,9 +374,11 @@ export class BaseClientCRUDWrapper<
 
   /**
    * @method batchUpdate() Updates multiple records that match the specified conditions with the provided update data. It accepts optional callbacks for managing loading state. The method prepares the payload, applies filters based on the conditions, executes the update operation, and returns the updated records wrapped in a Response object. If an error occurs during the operation, it is handled gracefully and returned as an APIError response.
-   */
-
-  async batchUpdate(
+   * @param update Partial properties that override values matching query results.
+   * @param filters Criteria/filters governing update target reach.
+   * @param cbs Optional native listener callbacks interacting while executing updates.
+   * @returns A promise containing an array of records that successfully finished the batch update.
+   */  async batchUpdate(
     update: Partial<TableFormData>,
     filters: UpdateOptions,
     cbs?: Callbacks
@@ -304,6 +429,9 @@ export class BaseClientCRUDWrapper<
   }
   /**
    * @method get() Retrieves records from the specified table based on the provided options. It accepts optional callbacks for managing loading state. The method constructs a query based on the options, executes it, and returns the retrieved records along with pagination information wrapped in a Response object. If an error occurs during the operation, it is handled gracefully and returned as an APIError response.
+   * @param getOptions Options mapping parameters like sorting, filtering, ranges, and search flags.
+   * @param cbs Optional runtime bindings monitoring request load states.
+   * @returns A promise resolving to a unified Response struct filled with array or object dataset including pagination metadata.
    */
   async get(
     getOptions: GetOptions,
@@ -418,6 +546,9 @@ export class BaseClientCRUDWrapper<
   }
   /**
    * @method deleteOneById() Permanently deletes a single record identified by its ID from the specified table. It accepts optional callbacks for managing loading state. The method executes a delete operation and returns a success response if the deletion  is successful. If an error occurs during the operation, it is handled gracefully and returned as an APIError response.
+   * @param tableId A valid matching string to target a specific row to delete.
+   * @param cbs Optional listener reacting to runtime scopes.
+   * @returns A promise tracking a unified null Response object affirming task execution securely.
    */
   async deleteOneById(
     tableId: string,
@@ -449,6 +580,10 @@ export class BaseClientCRUDWrapper<
   }
   /**
    * @method setSoftDeletedById() Toggles the soft deletion state of a single record identified by its ID. It accepts an intent boolean to indicate whether to soft delete (true) or restore (false) the record, along with optional callbacks for managing loading state. The method checks if soft deletion is supported, prepares the update payload based on the configured soft delete keys, executes the update operation, and returns the updated record wrapped in a Response object. If an error occurs during the operation, it is handled gracefully and returned as an APIError response.
+   * @param tableId Target's unique primary identifier.
+   * @param intent Truthy switch instructing table wrapper flags whether marking item alive/deleted.
+   * @param cbs Optional generic interface managing callbacks directly out-of-scope.
+   * @returns Promise returning mutated item's final soft delete state instance safely verified.
    */
   async setSoftDeletedById(
     tableId: string,

@@ -40,7 +40,10 @@ Supawrapper collapses query handling and database logic into a **seamless abstra
 const users = new ClientWrapper<User>(supabase, "users");
 
 // Fluent chained API
-const data = await users.chain()
+
+const chainable = users.chainable;
+
+const data = await chainable
   .where("is_active", true)
   .orderBy("created_at", "desc")
   .limit(10)
@@ -134,7 +137,18 @@ interface User {
 
 ```ts
 const users = new ClientWrapper<User>(supabase, "users");
+
 ```
+
+## 🎉 What's New in v1.0.7
+
+- **Upsert support**: Added `upsertOne` and `upsertMany` APIs for seamless "insert or update" operations, resolving conflicts automatically based on your uniquely identified keys!
+
+---
+
+- **Table identifiers**: Introduced `uniqueIdentifiers?: string[]` to your `TableBehaviour` configuration to power deterministic conflict resolutions directly at the data layer.
+
+---
 
 ---
 
@@ -152,9 +166,10 @@ const users = new ClientWrapper<User>(
         updatedAtKey: "updated_at",
       },
     },
+    uniqueIdentifiers: ["id"],
     validator: {
       enabled: true,
-      schema: userSchema, // z.ZodSchema<User>
+      schema: userSchema,
     },
     supportsSoftDeletion: true,
     softDeleteConfig: {
@@ -186,6 +201,7 @@ interface TableBehaviour<Schema = unknown> {
       updatedAtKey?: string;
     };
   };
+  uniqueIdentifiers?: string[];
   validator?: {
     enabled?: boolean;
     schema?: ZodSchema<Schema>;
@@ -226,6 +242,35 @@ await users.createOne({
 await users.createMany([
   { name: "User One", email: "user.one@example.com" },
   { name: "User Two", email: "user.two@example.com" },
+]);
+```
+
+---
+
+## Upsert Operations
+
+> **⚠️ Important:** Upsert operations require you to explicitly tell Supabase how to resolve conflicts. You **must** configure `uniqueIdentifiers` in your `TableBehaviour` configuration (e.g., `uniqueIdentifiers: ["id"]`) before using these methods. Supawrapper safely injects these keys automatically during the operation!
+
+### Upsert One
+
+```ts
+// Inserts or updates resolving conflicts through your configured `uniqueIdentifiers`
+await users.upsertOne({
+  id: "00000000-0000-0000-0000-000000000001",
+  name: "Upserted User",
+  email: "test.user@example.com",
+  is_active: true,
+});
+```
+
+---
+
+### Upsert Many
+
+```ts
+await users.upsertMany([
+  { id: "1", name: "User One", email: "one@example.com", is_active: true },
+  { id: "2", name: "User Two", email: "two@example.com", is_active: false },
 ]);
 ```
 

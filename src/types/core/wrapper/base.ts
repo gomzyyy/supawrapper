@@ -30,20 +30,18 @@ export interface TimestampsConfig {
 }
 
 export interface TableBehaviour<Schema = unknown> {
-  // Auto-handled fields like timestamps, userId, etc.
   timestamps?: TimestampsConfig;
 
-  // Validation options
+  uniqueIdentifiers?: string[]
+
   validator?: {
     enabled?: boolean;
     schema?: ZodSchema<Schema>;
   };
 
-  // Soft deletion
   supportsSoftDeletion?: boolean;
   softDeleteConfig?: SoftDeleteConfig;
 
-  // Debugging
   debug?: DebugConfig;
 }
 export interface BucketBehaviour {

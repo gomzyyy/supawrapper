@@ -9,6 +9,7 @@ export function getDefaultTableBehaviour<T>(): TableBehaviour<T> {
                 updatedAtKey: "updated_at",
             },
         },
+        uniqueIdentifiers: ["id"],
         validator: {
             enabled: false,
         },
