@@ -2,6 +2,7 @@ import { APIResponse } from "../../../response/index.js";
 import { BaseError, ValidationError } from "../../../errors/index.js";
 import {
   Callbacks,
+  CRUDOptions,
   Flag,
   Response,
   SoftDeleteConfig,
@@ -10,34 +11,26 @@ import {
 import { SupabaseClient } from "@supabase/supabase-js";
 import { validator } from "../../../../helpers/index.js";
 import { SupawrapperClient } from "../../../base-client/index.js";
+import { ZodError, ZodSchema } from "zod";
 
 const {
   amend: { deleteUnwantedValues },
 } = validator;
 
 export class UtilityMethods<
-  TableFormData,
+  Table,
   GetOptions,
   UpdateOptions
-> extends SupawrapperClient {
+> extends SupawrapperClient<Table> {
   constructor(
     supabase: SupabaseClient,
     tableName: string,
-    behaviour: TableBehaviour = {
-      supportsSoftDeletion: true,
-      softDeleteConfig: {
-        flagKey: "is_deleted",
-        timestampKey: "deleted_at",
-      },
-      debug: {
-        returnHintsOnError: false,
-      },
-    }
+    behaviour: TableBehaviour<Table>
   ) {
     super(supabase, tableName, behaviour);
   }
 
-  protected getDebugLogs(metaData: any) {
+  protected getDebugLogs(metaData: Record<string, unknown>) {
 
     if (this.behaviour.debug?.returnHintsOnError) {
       return {
@@ -47,6 +40,56 @@ export class UtilityMethods<
       };
     }
     return null;
+  }
+
+  protected updateTimestamps<P>(payload: P, isUpdate: boolean = false): P {
+    if (!this.behaviour?.timestamps?.autoTimestamps) return payload;
+
+    const { createdAtKey = "created_at", updatedAtKey } = this.behaviour.timestamps?.config ?? {};
+    const now = new Date().toISOString();
+
+    const applyToSingle = <T>(item: T): T => {
+      const newItem = { ...item } as Record<string, unknown>;
+      if (!isUpdate && createdAtKey) {
+        newItem[createdAtKey] = now;
+      }
+      if (updatedAtKey) {
+        newItem[updatedAtKey] = now;
+      }
+      return newItem as unknown as T;
+    };
+
+    if (Array.isArray(payload)) {
+      return payload.map(applyToSingle) as unknown as P;
+    }
+
+    return applyToSingle(payload) as unknown as P;
+  }
+
+  protected validateSchema<P>(
+    data: P,
+    schema?: ZodSchema<unknown>,
+    enabled: boolean = false
+  ): P {
+    if (!enabled || !schema) return data;
+
+    const validateSingle = <T>(item: T): T => {
+      try {
+        return schema.parse(item) as T;
+      } catch (err) {
+        if (err instanceof ZodError) {
+          console.error("Validation Error:", err);
+          throw err;
+        }
+        throw err;
+      }
+    };
+
+    if (Array.isArray(data)) {
+      return data.map(validateSingle) as unknown as P;
+    }
+
+    return validateSingle(data) as unknown as P;
   }
 
   protected async withLoading<T>(
@@ -62,7 +105,7 @@ export class UtilityMethods<
     }
   }
 
-  protected handleError(error: unknown): Response<any> {
+  protected handleError<R = any>(error: unknown): Response<R> {
     if (error instanceof BaseError) {
       return new APIResponse(null, error.flag, {
         message: error.message,
@@ -76,70 +119,79 @@ export class UtilityMethods<
     }).build();
   }
 
-  protected preparePayload(
-    payload: Partial<TableFormData> | TableFormData,
+  protected preparePayload<T>(
+    payload: T,
     cbs?: Callbacks,
     allowFalsy = false
-  ) {
+  ): Partial<T> {
     let newPayload = allowFalsy
       ? payload
-      : deleteUnwantedValues<Partial<TableFormData>>(payload, ["undefined", "emptystrings"]);
+      : deleteUnwantedValues<T>(payload, ["undefined", "emptystrings"]);
 
     return (
-      cbs?.amendArgs?.<TableFormData>({
+      cbs?.amendArgs?.<T>({
         formData: newPayload,
       }) ?? newPayload
-    );
+    ) as T;
   }
 
   protected isEmptyPayload(payload: object) {
     return !payload || Object.keys(payload).length === 0;
   }
 
-  protected applyFilters(
+  protected applyFilters<Table>(
     query: any,
     opts: Partial<GetOptions | UpdateOptions>
   ) {
-    const { eq, or, contains, overlaps, ilike, inValue } = opts as any;
+    const { eq, or, contains, overlaps, ilike, inValue, gt, gte, lt, lte } = opts as any;
 
-    if (Array.isArray(eq) && eq.length > 0) {
-      eq.forEach(({ key, value }: any) => {
+    if (Array.isArray(eq)) {
+      eq.forEach(({ key, value }: { key: keyof Table; value: Table[keyof Table] }) => {
         query = query.eq(key as string, value);
       });
     }
-
-    if (Array.isArray(contains) && contains.length > 0) {
-      contains.forEach(({ key, value }: any) => {
-        query = query.contains(
-          key as string,
-          Array.isArray(value) ? value : [value]
-        );
+    const operators: Record<string, { key: keyof Table; value: Table[keyof Table] }[]> = {
+      gt: gt as { key: keyof Table; value: Table[keyof Table] }[] ?? [],
+      gte: gte as { key: keyof Table; value: Table[keyof Table] }[] ?? [],
+      lt: lt as { key: keyof Table; value: Table[keyof Table] }[] ?? [],
+      lte: lte as { key: keyof Table; value: Table[keyof Table] }[] ?? [],
+    };
+    for (const [op, items] of Object.entries(operators)) {
+      items.forEach(({ key, value }) => {
+        query = (query as Record<string, Function>)[op](key as string, value);
       });
     }
 
-    if (Array.isArray(overlaps) && overlaps.length > 0) {
-      overlaps.forEach(({ key, value }: any) => {
+    if (Array.isArray(contains)) {
+      contains.forEach(({ key, value }: { key: keyof Table; value: Table[keyof Table] }) => {
+        query = query.contains(key as string, Array.isArray(value) ? value : [value]);
+      });
+    }
+
+    if (Array.isArray(overlaps)) {
+      overlaps.forEach(({ key, value }: { key: keyof Table; value: Table[keyof Table] }) => {
         query = query.overlaps(key as string, value);
       });
     }
 
-    if (Array.isArray(ilike) && ilike.length > 0) {
-      ilike.forEach(({ key, value }: any) => {
+    if (Array.isArray(ilike)) {
+      ilike.forEach(({ key, value }: { key: keyof Table; value: Table[keyof Table] }) => {
         query = query.ilike(key as string, value);
       });
     }
-
     if (or && typeof or === "string") {
       query = query.or(or);
     }
 
-    if (inValue?.key && inValue?.value?.length) {
-      query = query.in(inValue.key as string, inValue.value);
+    if (inValue && typeof inValue === "object" && "key" in inValue && "value" in inValue) {
+      const { key, value } = inValue as { key: keyof Table; value: (Table[keyof Table])[] };
+      if (Array.isArray(value) && value.length) {
+        query = query.in(key as string, value);
+      }
     }
 
     return query;
   }
-
   protected getSoftDeleteConfig(): SoftDeleteConfig {
     const config = this.behaviour.softDeleteConfig ?? {
       flagKey: "is_deleted",

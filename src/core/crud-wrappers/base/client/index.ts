@@ -3,6 +3,7 @@ import {
   type Callbacks,
   type Response,
   TableBehaviour,
+  OnLoadingStateChangeCallback,
 } from "../../../../types/index.js";
 import { APIResponse } from "../../../response/index.js";
 import { type SupabaseClient } from "@supabase/supabase-js";
@@ -19,28 +20,68 @@ export class BaseClientCRUDWrapper<
   TableFormData,
   GetOptions,
   UpdateOptions
-> extends UtilityMethods<TableFormData, GetOptions, UpdateOptions> {
+> extends UtilityMethods<Table, GetOptions, UpdateOptions> {
   constructor(
     supabase: SupabaseClient,
     tableName: string,
-    behaviour: TableBehaviour = {
-      supportsSoftDeletion: true,
-      softDeleteConfig: {
-        flagKey: "is_deleted",
-        timestampKey: "deleted_at",
-      },
-      debug: {
-        returnHintsOnError: false,
-      },
-    }
+    behaviour: TableBehaviour<Table>
   ) {
     super(supabase, tableName, behaviour);
   }
+
+  /**
+   * @method rawQuery() Allows you to run custom Supabase queries on the table. It accepts a callback function that receives the raw query builder and returns the result. This method is useful for operations that are not covered by the standard CRUD methods.
+   */
+  async rawQuery<R = any>(
+    queryCallback: (query: ReturnType<SupabaseClient["from"]>, data?: Partial<Table>) => any,
+    data?: Partial<Table> | Table,
+    cbs?: Callbacks
+  ): Promise<Response<R>> {
+    return this.withLoading(cbs, async () => {
+      try {
+        let payload = data;
+
+        payload = this.preparePayload(payload, cbs);
+
+        if (payload && this.behaviour.validator?.enabled && this.behaviour.validator?.schema) {
+          payload = this.validateSchema<Partial<Table>>(
+            payload,
+            this.behaviour.validator.schema,
+            !!this.behaviour.validator.enabled
+          );
+
+          payload = this.updateTimestamps<Partial<Table>>(payload);
+        }
+
+        const query = this.supabase.from(this.tableName);
+        const result = await queryCallback(query, payload);
+
+        if (result.error) {
+          const hints = this.getDebugLogs({
+            rawPayload: data,
+            injectedPayload: payload,
+            operation: "rawQuery",
+            rawOutput: {
+              data: result.data,
+              error: result.error,
+            },
+          });
+          throw new APIError(result.error.message, hints, result.error);
+        }
+
+        return new APIResponse(result?.data || null, Flag.Success).build();
+      } catch (error) {
+        return this.handleError<R>(error);
+      }
+    });
+  }
+
+
   /**
    * @method createOne() Creates a new record in the specified table with the provided data. It accepts optional callbacks for managing loading state and allows for falsy values in the payload if specified in the options. The method prepares the payload, executes the insert operation, and returns the created record wrapped in a Response object. If an error occurs during the operation, it is handled gracefully and returned as an APIError response.
    */
   async createOne(
-    data: TableFormData,
+    data: Partial<Table> | Table,
     cbs?: Callbacks,
     opts = { allowFalsy: false }
   ): Promise<Response<Table>> {
@@ -48,16 +89,24 @@ export class BaseClientCRUDWrapper<
       try {
         const newPayload = this.preparePayload(data, cbs, opts.allowFalsy);
 
+        const validatedPayload = this.validateSchema<Partial<Table>>(
+          newPayload,
+          this.behaviour.validator?.schema,
+          !!this.behaviour.validator?.enabled
+        );
+
+        const payloadWithUpdatedTimestamps = this.updateTimestamps<Partial<Table>>(validatedPayload);
+
         const { data: apiData, error } = await this.supabase
           .from(this.tableName)
-          .insert(newPayload)
+          .insert(payloadWithUpdatedTimestamps)
           .select("*")
           .maybeSingle();
 
         if (error) {
           const hints = this.getDebugLogs({
             rawPayload: data,
-            injectedPayload: newPayload,
+            injectedPayload: payloadWithUpdatedTimestamps,
             operation: "createOne",
             rawOutput: {
               data: apiData,
@@ -77,20 +126,30 @@ export class BaseClientCRUDWrapper<
    * @method createMany() Creates multiple records in the specified table with the provided array of data. The method executes a bulk insert operation and returns the created records wrapped in a Response object. If an error occurs during the operation, it is handled gracefully and returned as an APIError response.
    */
   async createMany(
-    arr: Partial<TableFormData>[] | TableFormData[]
+    arr: Partial<Table>[] | Table[]
   ): Promise<Response<Table[]>> {
     return this.withLoading(undefined, async () => {
       try {
-        const newPayloads = Array.isArray(arr) ? arr : [arr];
+        const sourcePayloads = Array.isArray(arr) ? arr : [arr];
+        const newPayloads = sourcePayloads.map(p => this.preparePayload(p));
+
+        const validatedPayloads = this.validateSchema<Partial<Table>[]>(
+          newPayloads,
+          this.behaviour.validator?.schema,
+          !!this.behaviour.validator?.enabled
+        );
+
+        const payloadsWithUpdatedTimestamps = this.updateTimestamps<Partial<Table>[]>(validatedPayloads);
+
         const { data, error } = await this.supabase
           .from(this.tableName)
-          .insert(newPayloads)
+          .insert(payloadsWithUpdatedTimestamps)
           .select("*");
 
         if (error) {
           const hints = this.getDebugLogs({
             rawPayload: arr,
-            injectedPayload: newPayloads,
+            injectedPayload: payloadsWithUpdatedTimestamps,
             operation: "createMany",
             rawOutput: {
               data,
@@ -111,7 +170,7 @@ export class BaseClientCRUDWrapper<
    */
   async updateById(
     tableId: string,
-    update: Partial<TableFormData>,
+    update: Partial<Table>,
     cbs?: Callbacks,
     opts: {
       allowFalsy: boolean;
@@ -119,15 +178,23 @@ export class BaseClientCRUDWrapper<
   ): Promise<Response<Table>> {
     return this.withLoading(cbs, async () => {
       try {
-        const newPayload = this.preparePayload(update, cbs, opts.allowFalsy);
+        const newPayload = this.preparePayload<Partial<Table>>(update, cbs, opts.allowFalsy);
 
         if (this.isEmptyPayload(newPayload)) {
           throw new ValidationError("No updates found.");
         }
 
+        const validatedPayload = this.validateSchema<Partial<Table>>(
+          newPayload,
+          this.behaviour.validator?.schema,
+          !!this.behaviour.validator?.enabled
+        );
+
+        const payloadWithUpdatedTimestamps = this.updateTimestamps<Partial<Table>>(validatedPayload, true);
+
         const { data, error } = await this.supabase
           .from(this.tableName)
-          .update(newPayload)
+          .update(payloadWithUpdatedTimestamps)
           .eq("id", tableId)
           .select("*")
           .maybeSingle();
@@ -135,7 +202,7 @@ export class BaseClientCRUDWrapper<
         if (error) {
           const hints = this.getDebugLogs({
             rawPayload: update,
-            injectedPayload: newPayload,
+            injectedPayload: payloadWithUpdatedTimestamps,
             operation: "updateById",
             rawOutput: {
               data,
@@ -197,11 +264,19 @@ export class BaseClientCRUDWrapper<
           throw new ValidationError("No updates found.");
         }
 
-        const newPayload = cbs?.amendArgs?.({ formData: update }) || update;
+        const newPayload = this.preparePayload(update, cbs, false);
+
+        const validatedPayload = this.validateSchema(
+          newPayload,
+          this.behaviour.validator?.schema,
+          !!this.behaviour.validator?.enabled
+        );
+
+        const payloadWithUpdatedTimestamps = this.updateTimestamps(validatedPayload, true);
 
         let query = this.supabase
           .from(this.tableName)
-          .update(newPayload)
+          .update(payloadWithUpdatedTimestamps)
           .select("*");
 
         query = this.applyFilters(query, filters);
@@ -211,7 +286,7 @@ export class BaseClientCRUDWrapper<
         if (error) {
           const hints = this.getDebugLogs({
             rawPayload: update,
-            injectedPayload: newPayload,
+            injectedPayload: payloadWithUpdatedTimestamps,
             operation: "batchUpdate",
             rawOutput: {
               data,

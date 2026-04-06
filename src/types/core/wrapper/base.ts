@@ -1,4 +1,4 @@
-import { ZodSchema } from "zod/v3";
+import { ZodSchema } from "zod";
 
 export interface SoftDeleteConfig {
   timestampKey?: string | null;
@@ -17,7 +17,7 @@ export interface DebugConfig {
 }
 export interface TimeStampConfig {
   createdAtKey?: string;
-  updatedAtKey?: string | null;
+  updatedAtKey?: string;
 }
 
 export interface TimestampsConfig {
@@ -36,7 +36,7 @@ export interface TableBehaviour<Schema = unknown> {
   // Validation options
   validator?: {
     enabled?: boolean;
-    schema?: ZodSchema<Schema> | null;
+    schema?: ZodSchema<Schema>;
   };
 
   // Soft deletion

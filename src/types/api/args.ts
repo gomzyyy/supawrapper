@@ -18,4 +18,4 @@ export interface CBArgs {
 //   extends OnSuccessCallback<Args["onSuccessArgs"]>,
 //     OnFailCallback<Args["onFailArgs"]>,
 //     OnLoadingStateChangeCallback {}
-export interface Callbacks extends OnLoadingStateChangeCallback, ValidatorCallback, PayloadCallbacks{}
+export interface Callbacks extends OnLoadingStateChangeCallback, PayloadCallbacks { }

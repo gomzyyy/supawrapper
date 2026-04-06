@@ -10,12 +10,11 @@ import {
 import { BaseClientCRUDWrapper } from "../base/client/index.js";
 import { APIResponse } from "@/core/response/index.js";
 import { APIError } from "@/core/errors/index.js";
-import { defaultTableBehaviour } from "./defaults.js";
-type ExistsFunctionOmitKeys = "validator" | "amendArgs";
+import { Presets } from "./presets/presets.js";
+import { Chainable } from "../base/client/chainable.js";
+import { getDefaultTableBehaviour } from "./defaults.js";
 
-/**
- * ClientWrapper is a specialized CRUD wrapper for client-side operations on a specific table. It extends the BaseClientCRUDWrapper and provides additional utility methods like `exists` to check if a record exists and `count` to count the number of records based on certain criteria. This class is designed to be flexible and can be extended further with more client-specific methods as needed.
- */
+type ExistsFunctionOmitKeys = "validator" | "amendArgs";
 
 export class ClientWrapper<
   Table,
@@ -28,13 +27,18 @@ export class ClientWrapper<
   GetOptions,
   UpdateOptions
 > {
+  public presets: Presets<Table>
+  public chainable: Chainable<Table>
   constructor(
     supabase: SupabaseClient,
     tableName: string,
-    behaviour: TableBehaviour = defaultTableBehaviour
+    behaviour: TableBehaviour<Table> = getDefaultTableBehaviour<Table>()
   ) {
     super(supabase, tableName, behaviour);
+    this.presets = new Presets<Table>(this, this.behaviour);
+    this.chainable = new Chainable<Table>(this)
   }
+
   /**
    * @classmethod exists() Checks if a record with the specified ID exists in the table. It uses the `withLoading` method to manage loading state and accepts callbacks for additional control over the operation. The method returns a boolean indicating the existence of the record, wrapped in a Response object for consistent API responses.
    */

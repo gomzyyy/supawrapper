@@ -4,17 +4,23 @@ export interface CommonSchema {
   updated_at?: string;
 }
 
+export type OrderBy = "asc" | "dec";
+
 export interface CRUDOptions<Table> {
   eq?: { key: keyof Table; value: Table[keyof Table] }[];
+  gt?: { key: keyof Table; value: Table[keyof Table] }[];
+  gte?: { key: keyof Table; value: Table[keyof Table] }[];
+  lt?: { key: keyof Table; value: Table[keyof Table] }[];
+  lte?: { key: keyof Table; value: Table[keyof Table] }[];
   sortBy?: keyof Table;
-  orderBy?: "asc" | "dec";
+  orderBy?: OrderBy;
   limit?: number;
   single?: boolean;
   maybeSingle?: boolean;
   or?: string;
   contains?: { key: keyof Table; value: Table[keyof Table] }[];
   overlaps?: { key: keyof Table; value: Table[keyof Table][] }[];
-  ilike?: { key: keyof Table; value: string }[];
+  ilike?: { key: keyof Table; value: Table[keyof Table] }[];
   inValue?: { key: keyof Table; value: Table[keyof Table][] };
   search?: string;
   searchFields?: (keyof Table)[];
