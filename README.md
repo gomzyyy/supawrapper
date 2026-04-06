@@ -428,4 +428,4 @@ MIT License
 
 # ❤️ Author
 
-Built with love by **Gomzy Dhingra**
+Built with love by **gomzyyy**
