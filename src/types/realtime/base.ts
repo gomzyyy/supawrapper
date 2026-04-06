@@ -8,7 +8,6 @@ import {
 
 export interface RealtimeOptions {
   filter?: string;
-  id?: string;
 }
 
 export type RealtimeEventType =

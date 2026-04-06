@@ -2,28 +2,24 @@ import {
   RealtimeChannel,
   SupabaseClient,
 } from "@supabase/supabase-js";
+import { BaseChannelWrapper } from "../base/index.js";
 
-export class BroadcastWrapper {
+export class BroadcastWrapper extends BaseChannelWrapper {
   constructor(
-    protected readonly supabase: SupabaseClient,
-    protected readonly channelName: string
-  ) {}
-
-  private getChannel(): RealtimeChannel {
-    return this.supabase.channel(
-      this.channelName
+    supabase: SupabaseClient,
+    channelName: string
+  ) {
+    super(
+      supabase,
+      `sw-broadcast-${channelName}`
     );
-  }
-
-  subscribe(): RealtimeChannel {
-    return this.getChannel().subscribe();
   }
 
   async send<T>(
     event: string,
     payload: T
   ): Promise<void> {
-    await this.getChannel().send({
+    await this.channel.send({
       type: "broadcast",
       event,
       payload,
@@ -34,7 +30,7 @@ export class BroadcastWrapper {
     event: string,
     cb: (payload: T) => void
   ): RealtimeChannel {
-    return this.getChannel()
+    return this.channel
       .on(
         "broadcast",
         { event },
