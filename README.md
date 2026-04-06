@@ -1,169 +1,231 @@
-# Supabase CRUD Wrapper
+# Supawrapper
 
-A fully generic, **TypeScript-first CRUD wrapper** built on top of **Supabase** that provides a clean and developer-friendly API similar to ORMs / ODMs like Mongoose.
+<p align="center">
+  <strong>A type-safe, developer-first Supabase wrapper for CRUD and Realtime operations.</strong>
+</p>
 
-This package helps eliminate repetitive CRUD boilerplate by exposing reusable methods such as:
+<p align="center">
+  Reduce boilerplate. Improve DX. Ship faster.
+</p>
 
-- `createOne()`
-- `updateOneById()`
-- `getById()`
-- `get()`
-- `batchUpdate()`
-- `deleteOneByIDPermanent()`
-- `toogleSoftDeleteOneById()`
+<p align="center">
+  <img alt="npm" src="https://img.shields.io/npm/v/supawrapper" />
+  <img alt="license" src="https://img.shields.io/npm/l/supawrapper" />
+  <img alt="typescript" src="https://img.shields.io/badge/TypeScript-Friendly-blue" />
+  <img alt="supabase" src="https://img.shields.io/badge/Supabase-Compatible-green" />
+</p>
 
-It also includes:
+> 🚧 **Early release notice**
+>
+> `supawrapper` is actively evolving and improving.
+> If you encounter any bugs, DX issues, or have feature suggestions, please **feel free to open an Issue or PR**.
+> Community feedback is highly appreciated ❤️
 
-- Strong TypeScript support
-- Built-in error handling
-- Payload validation / cleanup
-- Loading state callbacks
-- Conditional payload amendments
-- Flexible filtering system
+---
+
+## ✨ Features
+
+- Fully typed CRUD wrapper
+- Realtime listeners
+- Broadcast channels
 - Soft delete support
+- Batch updates
+- Bulk inserts
+- Query filters
+- Channel lifecycle management
+- TypeScript-first API
+- Developer-friendly abstractions
 
 ---
 
-## Why This Package?
-
-When working with Supabase, developers often repeat the same CRUD logic for every table.
-
-Example:
-
-```ts
-await supabase.from("users").update(payload).eq("id", userId);
-```
-
-This gets repeated across:
-
-- users
-- projects
-- tasks
-- products
-- content rows
-- any other table
-
-This package abstracts all of that into a reusable class-based wrapper.
-
----
-
-## Features
-
-- Fully generic CRUD wrapper
-- Strong TypeScript support
-- Flexible query filters
-- Reusable error classes
-- Consistent response structure
-- Soft delete support
-- Batch update support
-- Search and sorting support
-- Callback support for UI loading states
-
----
-
-## Folder Structure
-
-```text
-src/
-│
-├── core/
-│   ├── crud-wrapper/
-│   ├── response/
-│   ├── errors/
-│
-├── helpers/
-│   ├── validators/
-│
-├── types/
-│
-└── index.ts
-```
-
----
-
-## Architecture
-
-```text
-Consumer App
-     ↓
-CRUDWrapper
-     ↓
-Validators / Errors / Helpers
-     ↓
-Supabase SDK
-     ↓
-Postgres Database
-```
-
----
-
-## Installation
+## 📦 Installation
 
 ```bash
-npm install PACKAGE_NAME
+npm install supawrapper @supabase/supabase-js
+```
+
+or
+
+```bash
+yarn add supawrapper @supabase/supabase-js
+```
+
+or
+
+```bash
+pnpm add supawrapper @supabase/supabase-js
 ```
 
 ---
 
-## Basic Usage
+## 🚀 Quick Start
 
 ```ts
-import { CRUDWrapper } from "PACKAGE_NAME";
 import { createClient } from "@supabase/supabase-js";
+import {
+  ClientWrapper,
+  RealtimeListener,
+  BroadcastChannel
+} from "supawrapper";
 
-const supabase = createClient(URL, KEY);
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_ANON_KEY!
+);
+```
 
+---
+
+# 📘 CRUD Wrapper
+
+---
+
+## Define Your Table Type
+
+```ts
 interface User {
   id: string;
   name: string;
   email: string;
+  is_active: boolean;
+  created_at: string;
 }
-
-interface UserPayload {
-  name?: string;
-  email?: string;
-}
-
-const users = new CRUDWrapper<User, UserPayload>(supabase, "users");
 ```
 
 ---
 
-## Methods
-
-### Create One
+## Create Wrapper
 
 ```ts
-const response = await users.createOne({
-  name: "John",
-  email: "john@example.com",
+const users = new ClientWrapper<User>(
+  supabase,
+  "users"
+);
+```
+
+---
+
+## Create One
+
+```ts
+await users.createOne({
+  name: "Gomzy",
+  email: "gomzy@example.com",
+  is_active: true,
 });
 ```
 
 ---
 
-### Update By ID
+## Create Many
 
 ```ts
-const response = await users.updateOneById("123", {
+await users.createMany([
+  {
+    name: "User 1",
+    email: "u1@test.com",
+  },
+  {
+    name: "User 2",
+    email: "u2@test.com",
+  },
+]);
+```
+
+---
+
+## Get By ID
+
+```ts
+const user = await users.getById("user-id");
+```
+
+---
+
+## Get With Filters
+
+```ts
+const res = await users.get({
+  eq: [
+    {
+      key: "is_active",
+      value: true,
+    },
+  ],
+  sortBy: "created_at",
+  order: "desc",
+  limit: 10,
+});
+```
+
+---
+
+## Update By ID
+
+```ts
+await users.updateById("user-id", {
   name: "Updated Name",
 });
 ```
 
 ---
 
-### Get By ID
+## Batch Update
 
 ```ts
-const response = await users.getById("123");
+await users.batchUpdate(
+  {
+    is_active: false,
+  },
+  {
+    eq: [
+      {
+        key: "role",
+        value: "inactive",
+      },
+    ],
+  }
+);
 ```
 
 ---
 
-### Get With Filters
+## Delete By ID
 
 ```ts
-const response = await users.get({
+await users.deleteById("user-id");
+```
+
+---
+
+## Soft Delete / Restore
+
+```ts
+await users.setSoftDeletedById(
+  "user-id",
+  true
+);
+
+await users.setSoftDeletedById(
+  "user-id",
+  false
+);
+```
+
+---
+
+## Exists
+
+```ts
+const exists = await users.exists("user-id");
+```
+
+---
+
+## Count
+
+```ts
+const count = await users.count({
   eq: [
     {
       key: "is_active",
@@ -175,162 +237,195 @@ const response = await users.get({
 
 ---
 
-### Batch Update
+# ⚡ Realtime Listener
+
+Listen to table changes in real time.
+
+---
+
+## Create Listener
 
 ```ts
-const response = await users.batchUpdate(
-  {
-    role: "inactive_user",
-  },
-  {
-    eq: [
-      {
-        key: "is_active",
-        value: false,
-      },
-    ],
-  }
-);
+const userListener =
+  new RealtimeListener<User>(
+    supabase,
+    "users"
+  );
 ```
 
 ---
 
-### Delete Permanently
+## Listen for Inserts
 
 ```ts
-await users.deleteOneByIDPermanent("123");
+userListener.onInsert((payload) => {
+  console.log("Inserted:", payload.new);
+});
 ```
 
 ---
 
-### Soft Delete
+## Listen for Updates
 
 ```ts
-await users.toogleSoftDeleteOneById("123", true);
+userListener.onUpdate((payload) => {
+  console.log("Updated:", payload.new);
+});
 ```
 
 ---
 
-## Loading Callback Support
-
-Useful for frontend applications:
+## Listen for Deletes
 
 ```ts
-await users.get(
-  {},
-  {
-    onLoadingStateChange: (loading) => {
-      console.log(loading);
-    },
-  }
-);
+userListener.onDelete((payload) => {
+  console.log("Deleted:", payload.old);
+});
 ```
 
 ---
 
-## Amend Payload Before Request
-
-Allows conditional payload modifications before request execution:
+## Listen for All Changes
 
 ```ts
-await users.createOne(
-  {
-    name: "John",
-  },
-  {
-    amendArgs: ({ formData }) => ({
-      ...formData,
-      created_at: new Date().toISOString(),
-    }),
-  }
-);
+userListener.onChange((payload) => {
+  console.log("Changed:", payload);
+});
 ```
 
 ---
 
-## Response Format
-
-All methods return a standardized response:
+## Cleanup Listener
 
 ```ts
-{
-  data: ...,
-  error: ...,
-  flag: ...
-}
-```
-
-This ensures consistent handling across all operations.
-
----
-
-## Error Handling
-
-Includes reusable custom error classes:
-
-- `BaseError`
-- `APIError`
-- `ValidationError`
-- `InternalError`
-
-These are internally mapped to standardized API responses.
-
----
-
-## Build
-
-To build the package:
-
-```bash
-npm run build
-```
-
-This compiles:
-
-```text
-src/
-```
-
-into:
-
-```text
-dist/
+await userListener.unsubscribe();
 ```
 
 ---
 
-## Production Notes
+## Custom Channel ID
 
-Keep `src` for development.
+Useful when creating multiple listeners for the same table.
 
-Only publish `dist` in npm package.
-
-Recommended `package.json`:
-
-```json
-{
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "files": ["dist", "README.md"]
-}
+```ts
+const listener =
+  new RealtimeListener<User>(
+    supabase,
+    "users",
+    "dashboard-live"
+  );
 ```
 
 ---
 
-## Future Scope
+# 📡 Broadcast Channel
 
-Planned improvements:
-
-- pagination helpers
-- middleware hooks
-- query builder extensions
-- transactions
-- caching
-- audit logging
-- plugin architecture
+Use custom realtime channels for app-level events like chat, notifications, and collaboration.
 
 ---
 
-## License
+## Create Channel
 
-MIT
+```ts
+const chat =
+  new BroadcastChannel(
+    supabase,
+    "chat-room"
+  );
+```
+
+---
+
+## Subscribe
+
+```ts
+chat.subscribe();
+```
+
+---
+
+## Send Event
+
+```ts
+await chat.send("message", {
+  text: "Hello world",
+});
+```
+
+---
+
+## Listen to Event
+
+```ts
+chat.on("message", (payload) => {
+  console.log(payload);
+});
+```
+
+---
+
+## Cleanup
+
+```ts
+await chat.unsubscribe();
+```
+
+---
+
+# 🧠 Exported API
+
+```ts
+import {
+  ClientWrapper,
+  RealtimeListener,
+  BroadcastChannel,
+} from "supawrapper";
+```
+
+---
+
+# 📦 Exported Types
+
+```ts
+import type {
+  CRUDOptions,
+  GetTableOpts,
+  UpdateTableOpts,
+  TableBehaviour,
+  Callbacks,
+} from "supawrapper";
+```
+
+---
+
+# 🛣 Roadmap
+
+Upcoming features:
+
+- Storage wrapper
+- Auth wrapper
+- Presence channels
+- Server-side wrapper
+- Query chaining
+- CLI support
+- Schema helpers
+
+---
+
+# 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome.
+
+Feel free to open a PR or issue.
+
+---
+
+# 📄 License
+
+MIT License
+
+---
+
+# ❤️ Author
+
+Built with love by **Gomzy Dhingra**
