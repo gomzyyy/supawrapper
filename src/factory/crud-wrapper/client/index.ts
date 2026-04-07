@@ -14,6 +14,4 @@ function defineTable<Table, TableFormData extends Partial<Table> = Partial<Table
     return new ClientWrapper<Table, TableFormData, GetOptions, UpdateOptions>(supabase, tableName, behaviour)
 }
 
-const users = defineTable<any>("" as any, "users")
-
 export { defineTable }
