@@ -3,12 +3,12 @@ import {
   type Callbacks,
   type Response,
   TableBehaviour,
-  OnLoadingStateChangeCallback,
 } from "../../../../types/index.js";
 import { APIResponse } from "../../../response/index.js";
 import { type SupabaseClient } from "@supabase/supabase-js";
 import { APIError, ValidationError } from "../../../index.js";
 import { UtilityMethods } from "./utility.js";
+import { CacheClient } from "@/core/store/index.js";
 
 /**
  * @undertesting - Please note that BaseClientCRUDWrapper is currently under testing and may undergo significant changes. The current implementation serves as a foundational structure for CRUD operations, but we are actively working on refining the API, enhancing error handling, and optimizing performance. We recommend using this class for testing and prototyping purposes, but be prepared for potential breaking changes in future releases as we continue to improve and expand its capabilities.
@@ -21,6 +21,7 @@ export class BaseClientCRUDWrapper<
   GetOptions,
   UpdateOptions
 > extends UtilityMethods<Table, GetOptions, UpdateOptions> {
+  private readonly cache: CacheClient<Table> = new CacheClient<Table>(this.behaviour.cachingStrategy)
   constructor(
     supabase: SupabaseClient,
     tableName: string,
