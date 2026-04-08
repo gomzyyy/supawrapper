@@ -1,10 +1,12 @@
-import { CRUDOptions, OrderBy } from "../../../../types/index.js";
+import { OrderBy, SupabaseClientAdapter, GetTableOpts, UpdateTableOpts, CRUDOptions } from "../../../../types/index.js";
 import { ClientWrapper } from "../../client-wrapper/index.js";
 
-export class Chainable<T> {
-    private opts: CRUDOptions<T> = {};
+export class Chainable<T, TClient extends SupabaseClientAdapter> {
+    private opts: CRUDOptions<T>;
 
-    constructor(private client: ClientWrapper<T>) { }
+    constructor(private client: ClientWrapper<T, TClient>) {
+        this.opts = {} as CRUDOptions<T>;
+    }
 
     where(key: keyof T, value: T[keyof T]) {
         if (!this.opts.eq) this.opts.eq = [];

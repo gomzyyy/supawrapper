@@ -1,4 +1,3 @@
-import { SupabaseClient } from "@supabase/supabase-js";
 import {
   Callbacks,
   Flag,
@@ -6,6 +5,7 @@ import {
   Response,
   TableBehaviour,
   UpdateTableOpts,
+  SupabaseClientAdapter
 } from "../../../types/index.js";
 import { BaseClientCRUDWrapper } from "../base/client/index.js";
 import { APIResponse } from "../../../core/response/index.js";
@@ -18,25 +18,25 @@ type ExistsFunctionOmitKeys = "validator" | "amendArgs";
 
 export class ClientWrapper<
   Table,
-  TableFormData extends Partial<Table> = Partial<Table>,
+  TClient extends SupabaseClientAdapter,
   GetOptions extends GetTableOpts<Table> = GetTableOpts<Table>,
   UpdateOptions extends UpdateTableOpts<Table> = UpdateTableOpts<Table>
 > extends BaseClientCRUDWrapper<
   Table,
-  TableFormData,
+  TClient,
   GetOptions,
   UpdateOptions
 > {
-  public presets: Presets<Table>
-  public chainable: Chainable<Table>
+  public presets: Presets<Table, TClient>
+  public chainable: Chainable<Table, TClient>
   constructor(
-    supabase: SupabaseClient,
+    supabase: TClient,
     tableName: string,
     behaviour: TableBehaviour<Table> = getDefaultTableBehaviour<Table>()
   ) {
     super(supabase, tableName, behaviour);
-    this.presets = new Presets<Table>(this, this.behaviour);
-    this.chainable = new Chainable<Table>(this)
+    this.presets = new Presets<Table, TClient>(this, this.behaviour);
+    this.chainable = new Chainable<Table, TClient>(this)
   }
 
   /**

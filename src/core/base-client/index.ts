@@ -1,7 +1,6 @@
-import { TableBehaviour } from "../../types/index.js";
-import { SupabaseClient } from "@supabase/supabase-js";
+import { TableBehaviour, SupabaseClientAdapter } from "../../types/index.js";
 
-export class SupawrapperClient<Table = any> {
+export class SupawrapperClient<Table = any, TClient extends SupabaseClientAdapter = SupabaseClientAdapter> {
 
-    constructor(protected supabase: SupabaseClient, protected readonly tableName: string, protected readonly behaviour: TableBehaviour<Table>) { }
+    constructor(protected supabase: TClient, protected readonly tableName: string, protected readonly behaviour: TableBehaviour<Table>) { }
 }

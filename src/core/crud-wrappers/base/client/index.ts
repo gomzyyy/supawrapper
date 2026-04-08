@@ -8,7 +8,8 @@ import { APIResponse } from "../../../response/index.js";
 import { type SupabaseClient } from "@supabase/supabase-js";
 import { APIError, ValidationError } from "../../../index.js";
 import { UtilityMethods } from "./utility.js";
-import { CacheClient } from "@/core/store/index.js";
+import { CacheClient } from "../../../../core/store/index.js";
+import { SupabaseClientAdapter } from "../../../../types/index.js";
 
 /**
  * @undertesting - Please note that BaseClientCRUDWrapper is currently under testing and may undergo significant changes. The current implementation serves as a foundational structure for CRUD operations, but we are actively working on refining the API, enhancing error handling, and optimizing performance. We recommend using this class for testing and prototyping purposes, but be prepared for potential breaking changes in future releases as we continue to improve and expand its capabilities.
@@ -17,13 +18,13 @@ import { CacheClient } from "@/core/store/index.js";
  */
 export class BaseClientCRUDWrapper<
   Table,
-  TableFormData,
+  TClient extends SupabaseClientAdapter,
   GetOptions,
   UpdateOptions
-> extends UtilityMethods<Table, GetOptions, UpdateOptions> {
+> extends UtilityMethods<Table, TClient, GetOptions, UpdateOptions> {
   private readonly cache: CacheClient
   constructor(
-    supabase: SupabaseClient,
+    supabase: TClient,
     tableName: string,
     behaviour: TableBehaviour<Table>
   ) {
@@ -302,7 +303,7 @@ export class BaseClientCRUDWrapper<
    * @returns A promise resolving to a Response tracking the completed updated record.
    */
   async updateById(
-    tableId: string,
+    tableId: string | number,
     update: Partial<Table>,
     cbs?: Callbacks,
     opts: {
@@ -360,7 +361,7 @@ export class BaseClientCRUDWrapper<
    * @param cbs Optional callbacks binding loading scopes.
    * @returns A promise unlocking a unified Response containing the requested record.
    */
-  async getById(tableId: string, cbs?: Callbacks): Promise<Response<Table>> {
+  async getById(tableId: string | number, cbs?: Callbacks): Promise<Response<Table>> {
     return this.withLoading(cbs, async () => {
       try {
         const cacheKey = this.createIdCacheKey(tableId);
@@ -404,7 +405,7 @@ export class BaseClientCRUDWrapper<
    * @param cbs Optional native listener callbacks interacting while executing updates.
    * @returns A promise containing an array of records that successfully finished the batch update.
    */  async batchUpdate(
-    update: Partial<TableFormData>,
+    update: Partial<Table>,
     filters: UpdateOptions,
     cbs?: Callbacks
   ): Promise<Response<Table[]>> {
@@ -600,7 +601,7 @@ export class BaseClientCRUDWrapper<
    * @returns A promise tracking a unified null Response object affirming task execution securely.
    */
   async deleteOneById(
-    tableId: string,
+    tableId: string | number,
     cbs?: Callbacks
   ): Promise<Response<null>> {
     return this.withLoading(cbs, async () => {
@@ -638,7 +639,7 @@ export class BaseClientCRUDWrapper<
    * @returns Promise returning mutated item's final soft delete state instance safely verified.
    */
   async setSoftDeletedById(
-    tableId: string,
+    tableId: string | number,
     intent: boolean,
     cbs?: Callbacks
   ) {
@@ -698,8 +699,8 @@ export class BaseClientCRUDWrapper<
   }
 
   // Caching Helpers
-  private createIdCacheKey(id: string): string {
-    return `${this.tableName}:id:${id}`;
+  private createIdCacheKey(id: string | number): string {
+    return `${this.tableName}:id:${String(id)}`;
   }
 
   private stableStringify(input: unknown): string {

@@ -1,5 +1,5 @@
-import { CacheConfig } from "@/types/cache/base.js";
-import { ZodSchema } from "zod";
+import { CacheConfig } from "../../../types/cache/base.js";
+import { type ZodSchema } from "zod";
 
 export interface SoftDeleteConfig {
   timestampKey?: string | null;

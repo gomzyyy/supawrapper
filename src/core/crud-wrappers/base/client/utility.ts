@@ -2,16 +2,15 @@ import { APIResponse } from "../../../response/index.js";
 import { BaseError, ValidationError } from "../../../errors/index.js";
 import {
   Callbacks,
-  CRUDOptions,
   Flag,
   Response,
   SoftDeleteConfig,
   TableBehaviour,
+  SupabaseClientAdapter
 } from "../../../../types/index.js";
-import { SupabaseClient } from "@supabase/supabase-js";
 import { validator } from "../../../../helpers/index.js";
 import { SupawrapperClient } from "../../../base-client/index.js";
-import { ZodError, ZodSchema } from "zod";
+import type { ZodSchema } from "zod";
 
 const {
   amend: { deleteUnwantedValues },
@@ -19,11 +18,12 @@ const {
 
 export class UtilityMethods<
   Table,
+  TClient extends SupabaseClientAdapter,
   GetOptions,
   UpdateOptions
-> extends SupawrapperClient<Table> {
+> extends SupawrapperClient<Table, TClient> {
   constructor(
-    supabase: SupabaseClient,
+    supabase: TClient,
     tableName: string,
     behaviour: TableBehaviour<Table>
   ) {
@@ -77,7 +77,7 @@ export class UtilityMethods<
       try {
         return schema.parse(item) as T;
       } catch (err) {
-        if (err instanceof ZodError) {
+        if (this.isZodError(err)) {
           console.error("Validation Error:", err);
           throw err;
         }
@@ -123,7 +123,7 @@ export class UtilityMethods<
     payload: T,
     cbs?: Callbacks,
     allowFalsy = false
-  ): Partial<T> {
+  ): T {
     let newPayload = allowFalsy
       ? payload
       : deleteUnwantedValues<T>(payload, ["undefined", "emptystrings"]);
@@ -212,5 +212,14 @@ export class UtilityMethods<
       tableName: this.tableName,
       table_behaviour: this.behaviour,
     };
+  }
+
+  private isZodError(error: unknown): error is { issues: unknown[] } {
+    return (
+      typeof error === "object" &&
+      error !== null &&
+      "issues" in error &&
+      Array.isArray((error as { issues?: unknown[] }).issues)
+    );
   }
 }

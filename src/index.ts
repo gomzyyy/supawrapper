@@ -1,5 +1,5 @@
 export { ClientWrapper, RealtimeListener, BroadcastWrapper } from "./core/index.js";
-export { defineTable } from "./factory/index.js"
+// export { defineTable } from "./factory/index.js"
 export {
   type Callbacks,
   type Flag,

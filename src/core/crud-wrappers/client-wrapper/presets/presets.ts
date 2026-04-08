@@ -1,8 +1,8 @@
 import { ClientWrapper } from "../index.js";
-import type { TableBehaviour } from "../../../../types/index.js";
+import type { TableBehaviour, SupabaseClientAdapter } from "../../../../types/index.js";
 
-export class Presets<T> {
-    constructor(private client: ClientWrapper<T>, private readonly behaviour: TableBehaviour) { }
+export class Presets<T, TClient extends SupabaseClientAdapter> {
+    constructor(private client: ClientWrapper<T, TClient>, private readonly behaviour: TableBehaviour) { }
 
     // Existing presets
     active() {
