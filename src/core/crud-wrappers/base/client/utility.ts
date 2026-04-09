@@ -1,13 +1,13 @@
 import { APIResponse } from "../../../response/index.js";
 import { BaseError, ValidationError } from "../../../errors/index.js";
-import {
+import type {
   Callbacks,
-  Flag,
   Response,
   SoftDeleteConfig,
   TableBehaviour,
   SupabaseClientAdapter
 } from "../../../../types/index.js";
+import { Flag } from "../../../../types/core/api/common.js";
 import { validator } from "../../../../helpers/index.js";
 import { SupawrapperClient } from "../../../base-client/index.js";
 import type { ZodSchema } from "zod";

@@ -1,5 +1,5 @@
-import { CacheConfig, CacheRecord, StorageAdapter } from "../../../../types/cache/base.js";
-import { getStorage } from "../../storage/base/index.js";
+import type { CacheConfig, CacheRecord, StorageAdapter } from "../../../../types/cache/base.js";
+import { getDefaultStorage } from "../../storage/index.js";
 import { parseCacheRecord } from "../../../../helpers/fn.js"
 
 function hasUnref(timer: unknown): timer is { unref: () => void } {
@@ -22,7 +22,7 @@ export class CacheClient {
         this.enabled = !!config.enabled;
         this.ttl = config.ttl ?? 60_000;
         this.maxEntries = config.maxEntries ?? 500;
-        this.storage = getStorage(config.storage);
+        this.storage = getDefaultStorage(config.storage);
 
         if (this.enabled && config.autoCleanup !== false) {
             const interval = config.cleanupInterval ?? 30_000;

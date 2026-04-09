@@ -1,4 +1,4 @@
-import { TableBehaviour } from "../../../types/index.js";
+import type { TableBehaviour } from "../../../types/index.js";
 
 export function getDefaultTableBehaviour<T>(): TableBehaviour<T> {
     return {
@@ -32,6 +32,10 @@ export function getDefaultTableBehaviour<T>(): TableBehaviour<T> {
             maxEntries: 500,
             cleanupInterval: 60000,
             autoCleanup: true,
+        },
+        presets: {
+            isActiveKey: "is_active",
+            userIdKey: "user_id",
         }
     }
 }

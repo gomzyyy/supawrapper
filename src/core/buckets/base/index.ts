@@ -1,17 +1,17 @@
-import { SupabaseClient } from "@supabase/supabase-js";
 import { BucketUtilityMethods } from "./utility.js";
-import {
+import type {
   BucketBehaviour,
   OnLoadingStateChangeCallback,
   UploadOptions,
   TransformOptions,
-  SearchOptions
+  SearchOptions,
+  SupabaseClientAdapter
 } from "../../../types/index.js";
 
-export class BaseBucketWrapper extends BucketUtilityMethods {
+export class BaseBucketWrapper<TClient extends SupabaseClientAdapter> extends BucketUtilityMethods<TClient> {
   constructor(
     bucketName: string,
-    supabase: SupabaseClient,
+    supabase: TClient,
     behaviour: BucketBehaviour = {
       debug: {
         returnHintsOnError: true,

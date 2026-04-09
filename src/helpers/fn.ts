@@ -1,4 +1,4 @@
-import { CacheRecord, JSDataType } from "../types/index.js"
+import type { CacheRecord, JSDataType } from "../types/index.js"
 
 export function getDataType(value: unknown): JSDataType {
   if (value === null) return "null"

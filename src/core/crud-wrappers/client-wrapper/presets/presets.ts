@@ -4,11 +4,26 @@ import type { TableBehaviour, SupabaseClientAdapter } from "../../../../types/in
 export class Presets<T, TClient extends SupabaseClientAdapter> {
     constructor(private client: ClientWrapper<T, TClient>, private readonly behaviour: TableBehaviour) { }
 
-    // Existing presets
+    /**
+     * Retrieves all "active" records.
+     * 
+     * @configuration Requires `presets.isActiveKey` to be configured in TableBehaviour.
+     * @db Expected DB column type: `boolean` (compares key === true).
+     */
     active() {
-        return this.client.get({ eq: [{ key: "is_active" as keyof T, value: true as T[keyof T] }] });
+        if (!this.behaviour.presets?.isActiveKey) {
+            throw new Error("isActiveKey is not enabled/configured for this table.");
+        }
+        return this.client.get({ eq: [{ key: this.behaviour?.presets?.isActiveKey as keyof T, value: true as T[keyof T] }] });
     }
 
+    /**
+     * Retrieves the most recently created records.
+     * 
+     * @param limit - Maximum number of records to return (default: 10).
+     * @configuration Requires `timestamps.config.createdAtKey` to be configured.
+     * @db Expected DB column type: `Timestamp` / `Timestamptz`. Sorts descending.
+     */
     recent(limit = 10) {
         if (!this.behaviour.timestamps?.config?.createdAtKey) {
             throw new Error("Timestamps are not enabled/configured for this table.");
@@ -16,26 +31,55 @@ export class Presets<T, TClient extends SupabaseClientAdapter> {
         return this.client.get({ sortBy: this.behaviour.timestamps?.config?.createdAtKey as keyof T, orderBy: "dec", limit });
     }
 
+    /**
+     * Retrieves all records belonging to a specific user.
+     * 
+     * @param userId - The ID of the user to match.
+     * @configuration Requires `presets.userIdKey` to be configured in TableBehaviour.
+     * @db Expected DB column type: `UUID` or `String` (matches exact ID).
+     */
     byUser(userId: string) {
-        return this.client.get({ eq: [{ key: "user_id" as keyof T, value: userId as T[keyof T] }] });
+        if (!this.behaviour.presets?.userIdKey) {
+            throw new Error("userIdKey is not enabled/configured for this table.");
+        }
+        return this.client.get({ eq: [{ key: this.behaviour?.presets?.userIdKey as keyof T, value: userId as T[keyof T] }] });
     }
 
-    // ✅ New useful presets
-
-    // All inactive records
-    inactive() {
-        return this.client.get({ eq: [{ key: "is_active" as keyof T, value: false as T[keyof T] }] });
+    /**
+     * Retrieves all "inactive" records.
+     * 
+     * @param limit - Maximum number of records to return (default: 10).
+     * @configuration Requires `presets.isActiveKey` to be configured in TableBehaviour.
+     * @db Expected DB column type: `boolean` (compares key === false).
+     */
+    inactive(limit: number = 10) {
+        if (!this.behaviour.presets?.isActiveKey) {
+            throw new Error("isActiveKey is not enabled/configured for this table.");
+        }
+        return this.client.get({ eq: [{ key: this.behaviour?.presets?.isActiveKey as keyof T, value: false as T[keyof T] }], limit });
     }
 
-    // Soft-deleted records (requires supportsSoftDeletion)
-    deleted() {
+    /**
+     * Retrieves all soft-deleted records.
+     * 
+     * @param limit - Maximum number of records to return (default: 10).
+     * @configuration Requires `supportsSoftDeletion` mapped accurately to `softDeleteConfig.flagKey`.
+     * @db Expected DB column type: `boolean` (compares flagKey === true).
+     */
+    deleted(limit: number = 10) {
         if (!this.behaviour.supportsSoftDeletion || !this.behaviour.softDeleteConfig?.flagKey) {
             throw new Error("Soft deletion is not enabled/configured for this table.");
         }
-        return this.client.get({ eq: [{ key: this.behaviour.softDeleteConfig.flagKey as keyof T, value: true as T[keyof T] }] });
+        return this.client.get({ eq: [{ key: this.behaviour.softDeleteConfig.flagKey as keyof T, value: true as T[keyof T] }], limit });
     }
 
-    // Recently updated records (requires updatedAtKey)
+    /**
+     * Retrieves the most recently updated records.
+     * 
+     * @param limit - Maximum number of records to return (default: 10).
+     * @configuration Requires `timestamps.config.updatedAtKey` to be configured.
+     * @db Expected DB column type: `Timestamp` / `Timestamptz`. Sorts descending.
+     */
     recentlyUpdated(limit = 10) {
         if (!this.behaviour.timestamps?.config?.updatedAtKey) {
             throw new Error("Updated timestamp is not enabled/configured for this table.");
@@ -43,7 +87,13 @@ export class Presets<T, TClient extends SupabaseClientAdapter> {
         return this.client.get({ sortBy: this.behaviour.timestamps.config.updatedAtKey as keyof T, orderBy: "dec", limit });
     }
 
-    // Records created within the last X days
+    /**
+     * Retrieves records created within the last specified number of days.
+     * 
+     * @param days - Integer representing the number of days back to search.
+     * @configuration Requires `timestamps.config.createdAtKey` to be configured.
+     * @db Expected DB column type: `Timestamp` / `Timestamptz` (compares ISO string `>= cutoff`).
+     */
     createdWithin(days: number) {
         if (!this.behaviour.timestamps?.config?.createdAtKey) {
             throw new Error("Timestamps are not enabled/configured for this table.");
@@ -58,19 +108,41 @@ export class Presets<T, TClient extends SupabaseClientAdapter> {
         });
     }
 
-    // Example: records belonging to multiple users
+    /**
+     * Retrieves records belonging to multiple users.
+     * 
+     * @param userIds - Array of user IDs.
+     * @configuration Requires `presets.userIdKey` to be configured in TableBehaviour.
+     * @db Expected DB column type: `UUID` or `String` (uses an SQL `IN` array match).
+     */
     byUsers(userIds: string[]) {
+        if (!this.behaviour.presets?.userIdKey) {
+            throw new Error("userIdKey is not enabled/configured for this table.");
+        }
         return this.client.get({
-            inValue: { key: "user_id" as keyof T, value: userIds as T[keyof T][] },
+            inValue: { key: this.behaviour?.presets?.userIdKey as keyof T, value: userIds as T[keyof T][] },
         });
     }
 
-    // Count active records shortcut
+    /**
+     * Counts the total number of "active" records.
+     * 
+     * @configuration Requires `presets.isActiveKey` to be configured in TableBehaviour.
+     * @db Expected DB column type: `boolean` (counts where key === true).
+     */
     countActive() {
-        return this.client.count({ eq: [{ key: "is_active" as keyof T, value: true as T[keyof T] }] });
+        if (!this.behaviour.presets?.isActiveKey) {
+            throw new Error("isActiveKey is not enabled/configured for this table.");
+        }
+        return this.client.count({ eq: [{ key: this.behaviour?.presets?.isActiveKey as keyof T, value: true as T[keyof T] }] });
     }
 
-    // Count soft-deleted records shortcut
+    /**
+     * Counts the total number of soft-deleted records.
+     * 
+     * @configuration Requires `supportsSoftDeletion` and `softDeleteConfig.flagKey`.
+     * @db Expected DB column type: `boolean` (counts where flagKey === true).
+     */
     countDeleted() {
         if (!this.behaviour.supportsSoftDeletion || !this.behaviour.softDeleteConfig?.flagKey) {
             throw new Error("Soft deletion is not enabled/configured for this table.");

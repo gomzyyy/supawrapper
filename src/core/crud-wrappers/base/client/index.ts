@@ -2,14 +2,13 @@ import {
   Flag,
   type Callbacks,
   type Response,
-  TableBehaviour,
+  type TableBehaviour,
 } from "../../../../types/index.js";
 import { APIResponse } from "../../../response/index.js";
-import { type SupabaseClient } from "@supabase/supabase-js";
 import { APIError, ValidationError } from "../../../index.js";
 import { UtilityMethods } from "./utility.js";
 import { CacheClient } from "../../../../core/store/index.js";
-import { SupabaseClientAdapter } from "../../../../types/index.js";
+import type { SupabaseClientAdapter } from "../../../../types/index.js";
 
 /**
  * @undertesting - Please note that BaseClientCRUDWrapper is currently under testing and may undergo significant changes. The current implementation serves as a foundational structure for CRUD operations, but we are actively working on refining the API, enhancing error handling, and optimizing performance. We recommend using this class for testing and prototyping purposes, but be prepared for potential breaking changes in future releases as we continue to improve and expand its capabilities.
@@ -33,6 +32,13 @@ export class BaseClientCRUDWrapper<
   }
 
   /**
+   * @method clearCache() Manually clears all active cache records across this table's wrapper instance. Useful for forced invalidation if caching becomes buggy or stale.
+   */
+  clearCache(): void {
+    this.cache.clear();
+  }
+
+  /**
    * @method rawQuery() Allows you to run custom Supabase queries on the table. It accepts a callback function that receives the raw query builder and returns the result. This method is useful for operations that are not covered by the standard CRUD methods.
    * @param queryCallback Callback function that receives the raw query builder and returns the query result.
    * @param data Optional payload data to be used in the query.
@@ -40,7 +46,7 @@ export class BaseClientCRUDWrapper<
    * @returns A promise resolving to a unified Response object containing the query result.
    */
   async rawQuery<R = any>(
-    queryCallback: (query: ReturnType<SupabaseClient["from"]>, data?: Partial<Table>) => any,
+    queryCallback: (query: ReturnType<TClient["from"]>, data?: Partial<Table>) => any,
     data?: Partial<Table> | Table,
     cbs?: Callbacks
   ): Promise<Response<R>> {

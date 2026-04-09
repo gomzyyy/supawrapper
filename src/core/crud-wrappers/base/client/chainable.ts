@@ -1,4 +1,4 @@
-import { OrderBy, SupabaseClientAdapter, GetTableOpts, UpdateTableOpts, CRUDOptions } from "../../../../types/index.js";
+import type { OrderBy, SupabaseClientAdapter, CRUDOptions } from "../../../../types/index.js";
 import { ClientWrapper } from "../../client-wrapper/index.js";
 
 export class Chainable<T, TClient extends SupabaseClientAdapter> {

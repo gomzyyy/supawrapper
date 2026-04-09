@@ -1,6 +1,6 @@
 import { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 
-import {
+import type {
   RealtimeOptions,
   BaseRealtimeCBFunction,
   RealtimeEventType,

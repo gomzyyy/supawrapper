@@ -10,29 +10,16 @@
 
 ---
 
-# 🚀 v1.0.9 — Most Stable Release Yet
+# ✨ What's New in v1.0.10
 
-> This is the most stable version of Supawrapper to date.
-
-### 🐛 Bug Fixes
-
-- **Fixed strict Supabase client typing** — `TClient` is now fully generic and compatible with every version of `@supabase/supabase-js`. No more version-lock type errors.
-- **Fixed import alias resolution** — resolved `@/` path alias issues that caused module import failures in certain project setups.
-- **Fixed package metadata conflicts** — corrected `package.json` dependency declarations that caused peer dependency resolution conflicts on install.
-
-### ✨ Previously in v1.0.8
-
-- Production-grade read-through caching layer
-- Automatic write invalidation on all mutations
-- Cache support for `getById()` and `get()`
-- Pagination-safe query caching
-- Configurable TTL, max entries, and storage adapter
-- Automatic `localStorage` / `MemoryStorage` fallback
+- **Exported Storage Adapters**: Easily import and configure persistence engines by securely exposing storage options directly from `supawrapper/storage` (e.g., `MemoryStorage`, `createPersistentStorage`).
+- **Improved Strict TypeScript Generics**: Heavily upgraded the `ClientWrapper` type constraints bringing stricter and safer schema inferences.
+- **Preset Configuration Overrides**: Natively added configurations for smart `presets` directly within `TableBehaviour`, allowing customized mapping for internal keys like `isActiveKey` and `userIdKey`.
 
 ---
 
 > [!NOTE]
-> Supawrapper is a newly launched open-source package built on top of the Supabase client. If you encounter any issues, unexpected behaviour, or want to suggest improvements, **please open an issue on the [GitHub repository](https://github.com/gomzyyy/supawrapper)**. Your feedback directly shapes the roadmap.
+> Supawrapper is a newly launched open-source package built on top of the Supabase client. If you encounter any issues, unexpected behaviour, or want to suggest improvements, **please open an issue on the [GitHub repository](https://github.com/gomzyyy/supawrapper/issues)**. Your feedback directly shapes the roadmap.
 
 ---
 
@@ -103,7 +90,8 @@ const users = new ClientWrapper<User, typeof supabase>(supabase, "users");
 ## ✨ Features
 
 - Fully typed CRUD wrapper
-- Built-in caching layer with read-through support, auto-invalidation, configurable TTL, and zero-config fallback storage (`localStorage` → `MemoryStorage`)
+- Built-in caching layer with read-through support, auto-invalidation, configurable TTL, and zero-config fallback storage (Uses Heap under the hood for speed; `MemoryStorage`)
+- Configurable cache storage via exposed api `createPersistentStorage` (NodeJS only, Persistant) and class `MemoryStorage` (Browser and NodeJS, In-Memory)
 - Schema validation with Zod
 - Auto-handled timestamps
 - Presets (smart reusable queries)
@@ -130,6 +118,13 @@ npm install supawrapper @supabase/supabase-js zod
 ```ts
 import { createClient } from "@supabase/supabase-js";
 import { ClientWrapper, RealtimeListener, BroadcastChannel } from "supawrapper";
+import { createPersistentStorage, MemoryStorage } from "supawrapper/storage";
+
+// NodeJS only, Persistant
+const persistentStorage = createPersistentStorage("./cache");
+
+// Browser and NodeJS, In-Memory
+const memoryStorage = new MemoryStorage();
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -181,6 +176,11 @@ const users = new ClientWrapper<User, typeof supabase>(
       enabled: true,
       ttl: 60000,
       maxEntries: 100,
+      // storage: yourStorage,
+    },
+    presets: {
+      isActiveKey: "is_active",
+      userIdKey: "user_id",
     },
     validator: {
       enabled: true,
@@ -224,6 +224,10 @@ interface TableBehaviour<Schema = unknown> {
     storage?: any;
     cleanupInterval?: number;
     autoCleanup?: boolean;
+  };
+  presets?: {
+    isActiveKey?: string;
+    userIdKey?: string;
   };
   validator?: {
     enabled?: boolean;
@@ -283,6 +287,11 @@ const defaultBehaviour = {
     maxEntries: 500,
     cleanupInterval: 60_000,
     autoCleanup: true,
+    // storage: memoryStorage // Uses Heap under the hood for speed as default storage
+  },
+  presets: {
+    isActiveKey: "is_active",
+    userIdKey: "user_id",
   }
 }
 ```
@@ -328,21 +337,35 @@ interface CacheConfig {
 ### Default Storage Fallback
 
 ```ts
-function getStorage(storage?: StorageAdapter): StorageAdapter {
+function getDefaultStorage(storage?: StorageAdapter): StorageAdapter {
   if (storage) return storage;
-  else if (
-    typeof window !== "undefined" &&
-    "localStorage" in window
-  ) return window.localStorage;
   else return new MemoryStorage();
 }
 ```
 
-- if user provides custom storage → use that
-- otherwise use browser `localStorage`
-- otherwise fallback to in-memory `MemoryStorage`
-- `MemoryStorage` internally uses `Map()`
-- ideal for Node.js / SSR / non-browser environments
+- If a user provides a custom storage adapter, Supawrapper prioritizes and uses that.
+- Otherwise, it falls back to the inbuilt storage adapter that relies on **Heap storage** (`MemoryStorage`) by default.
+- This default storage is **non-persistent** and will be entirely cleared upon every initialization.
+- Developers must explicitly provide discrete storage adapters for true persistence.
+- If using **Node.js**, you can easily configure persistent storage by utilizing the `createPersistentStorage` API exposed natively by `supawrapper/storage`.
+
+### Using Exported Storage Adapters
+
+Supawrapper exposes its internal `StorageAdapter` implementations directly, so you don't have to rewrite boilerplate cache logic:
+
+> **⚠️ Important:** The `createPersistentStorage` API relies on the internal `node:fs` and `node:path` modules. It might throw an error in inappropriate environments (such as browsers or edge runtimes). Therefore, make absolutely sure you have a proper Node.js environment when attempting to use it!
+
+```ts
+import { MemoryStorage, createPersistentStorage } from "supawrapper/storage";
+
+const users = new ClientWrapper<User, typeof supabase>(supabase, "users", {
+  cachingStrategy: {
+    enabled: true,
+    // Safely writes persistence caching to a local JSON file (Node.js only)
+    storage: createPersistentStorage("./cache/users"),
+  }
+});
+```
 
 ---
 

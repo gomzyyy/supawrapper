@@ -1,6 +1,5 @@
 import { ClientWrapper } from "../../../core/index.js";
-import { GetTableOpts, SupabaseClientAdapter, TableBehaviour, UpdateTableOpts } from "../../../types/index.js";
-import { SupabaseClient } from "@supabase/supabase-js";
+import type { GetTableOpts, SupabaseClientAdapter, TableBehaviour, UpdateTableOpts } from "../../../types/index.js";
 
 /**
  * @description This function is used to configure the client for a specific table.

@@ -1,4 +1,4 @@
-import { TableBehaviour, SupabaseClientAdapter } from "../../types/index.js";
+import type { TableBehaviour, SupabaseClientAdapter } from "../../types/index.js";
 
 export class SupawrapperClient<Table = any, TClient extends SupabaseClientAdapter = SupabaseClientAdapter> {
 

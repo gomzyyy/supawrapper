@@ -1,4 +1,4 @@
-import { CacheConfig } from "../../../types/cache/base.js";
+import type { CacheConfig } from "../../../types/cache/base.js";
 import { type ZodSchema } from "zod";
 
 export interface SoftDeleteConfig {
@@ -45,8 +45,13 @@ export interface TableBehaviour<Schema = unknown> {
 
   debug?: DebugConfig;
 
-  //new addition
-  cachingStrategy?: CacheConfig
+  cachingStrategy?: CacheConfig;
+
+  // new addition
+  presets?: {
+    isActiveKey?: string;
+    userIdKey?: string;
+  }
 }
 export interface BucketBehaviour {
   debug?: DebugConfig;

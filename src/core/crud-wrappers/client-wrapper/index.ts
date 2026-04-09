@@ -1,12 +1,12 @@
-import {
+import type {
   Callbacks,
-  Flag,
   GetTableOpts,
   Response,
   TableBehaviour,
   UpdateTableOpts,
   SupabaseClientAdapter
 } from "../../../types/index.js";
+import { Flag, } from "../../../types/index.js";
 import { BaseClientCRUDWrapper } from "../base/client/index.js";
 import { APIResponse } from "../../../core/response/index.js";
 import { APIError } from "../../../core/errors/index.js";
@@ -16,9 +16,31 @@ import { getDefaultTableBehaviour } from "./defaults.js";
 
 type ExistsFunctionOmitKeys = "validator" | "amendArgs";
 
+/**
+ * `ClientWrapper` is the main entry point for interacting with a Supabase table using Supawrapper.
+ *
+ * It provides fully typed CRUD operations, built-in caching, Zod validation, automatic timestamps,
+ * soft deletion, chainable queries, and preset query helpers — all configured through `TableBehaviour`.
+ *
+ * @typeParam Table - The TypeScript interface representing the shape of a row in your Supabase table.
+ * @typeParam TClient - Your Supabase client type (e.g. `typeof supabase` or `SupabaseClient`). Defaults to the base adapter type.
+ * @typeParam GetOptions - (Optional) Override the default get/filter options type.
+ * @typeParam UpdateOptions - (Optional) Override the default update/filter options type.
+ *
+ * @example
+ * ```ts
+ * const users = new ClientWrapper<User, typeof supabase>(supabase, "users", {
+ *   timestamps: { autoTimestamps: true },
+ *   cachingStrategy: { enabled: true, ttl: 60_000 },
+ * });
+ *
+ * const user = await users.getById("user-id");
+ * const results = await users.chainable.where("is_active", true).limit(10).get();
+ * ```
+ */
 export class ClientWrapper<
-  Table,
-  TClient extends SupabaseClientAdapter,
+  Table = any,
+  TClient extends SupabaseClientAdapter = SupabaseClientAdapter,
   GetOptions extends GetTableOpts<Table> = GetTableOpts<Table>,
   UpdateOptions extends UpdateTableOpts<Table> = UpdateTableOpts<Table>
 > extends BaseClientCRUDWrapper<

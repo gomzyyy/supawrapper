@@ -1,12 +1,12 @@
-import { Response } from "./response.js";
+import type { Response } from "./response.js";
 
 export enum Flag {
-    Success="SUCCESS",
-    InternalError="INTERNAL_ERROR",
-    APIError="API_ERROR",
-    ValidationError="VALIDATION_ERROR",
-    UnknownOrSuccess="UNKNOWN_OR_SUCCESS",
-    Unknown="UNKNOWN"
+  Success = "SUCCESS",
+  InternalError = "INTERNAL_ERROR",
+  APIError = "API_ERROR",
+  ValidationError = "VALIDATION_ERROR",
+  UnknownOrSuccess = "UNKNOWN_OR_SUCCESS",
+  Unknown = "UNKNOWN"
 }
 
 export type WrapperFunctionType<

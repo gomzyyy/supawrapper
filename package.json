@@ -7,7 +7,13 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./storage": {
+      "types": "./dist/storage/index.d.ts",
+      "import": "./dist/storage/index.js",
+      "default": "./dist/storage/index.js"
     }
   },
   "type": "module",
@@ -37,9 +43,9 @@
     "supawrapper"
   ],
   "devDependencies": {
+    "@supabase/supabase-js": "^2.101.1",
     "@types/node": "^25.5.2",
     "typescript": "^6.0.2",
-    "@supabase/supabase-js": "^2.101.1",
     "zod": "^4.3.6"
   },
   "peerDependencies": {
