@@ -1,5 +1,4 @@
 import type { CacheConfig } from "../../../types/cache/base.js";
-import { type ZodSchema } from "zod";
 
 export interface SoftDeleteConfig {
   timestampKey?: string | null;
@@ -37,7 +36,7 @@ export interface TableBehaviour<Schema = unknown> {
 
   validator?: {
     enabled?: boolean;
-    schema?: ZodSchema<Schema>;
+    schema?: import("zod").ZodSchema<Schema>;
   };
 
   supportsSoftDeletion?: boolean;

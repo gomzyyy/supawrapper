@@ -10,7 +10,11 @@
 
 ---
 
-# ✨ What's New in v1.0.10
+# ⚒️ Patch v1.0.11 includes:
+
+- **Optional Zod Dependency**: Refactored internal Zod type imports making the Zod package *completely optional*. You now only need to install `zod` if you strictly want to utilize the built-in schema validation features!
+
+### ✨ Previous Patch (v1.0.10)
 
 - **Exported Storage Adapters**: Easily import and configure persistence engines by securely exposing storage options directly from `supawrapper/storage` (e.g., `MemoryStorage`, `createPersistentStorage`).
 - **Improved Strict TypeScript Generics**: Heavily upgraded the `ClientWrapper` type constraints bringing stricter and safer schema inferences.

@@ -10,7 +10,6 @@ import type {
 import { Flag } from "../../../../types/core/api/common.js";
 import { validator } from "../../../../helpers/index.js";
 import { SupawrapperClient } from "../../../base-client/index.js";
-import type { ZodSchema } from "zod";
 
 const {
   amend: { deleteUnwantedValues },
@@ -68,7 +67,7 @@ export class UtilityMethods<
 
   protected validateSchema<P>(
     data: P,
-    schema?: ZodSchema<unknown>,
+    schema?: import("zod").ZodSchema<unknown>,
     enabled: boolean = false
   ): P {
     if (!enabled || !schema) return data;
