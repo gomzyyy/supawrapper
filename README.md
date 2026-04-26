@@ -10,15 +10,19 @@
 
 ---
 
-# ⚒️ Patch v1.0.11 includes:
+# 🚀 Version v1.1.0 - Minor Enhancement!
+
+## ✨ **Issue #12 SOLVED** - Enhanced Get Methods!
+
+- **🎯 Optional Get Arguments**: The `get()` method now accepts optional arguments! Simply call `table.get()` without any parameters for quick data retrieval.
+- **🔧 Custom Select Support**: All get-related methods (`get()`, `getById()`) now support `{select?: string}` in options to customize your select queries!
+- **⚡ Improved Developer Experience**: More flexible and intuitive API for data retrieval operations.
+
+---
+
+# ⚒️ Previous Patch v1.0.11 includes:
 
 - **Optional Zod Dependency**: Refactored internal Zod type imports making the Zod package *completely optional*. You now only need to install `zod` if you strictly want to utilize the built-in schema validation features!
-
-### ✨ Previous Patch (v1.0.10)
-
-- **Exported Storage Adapters**: Easily import and configure persistence engines by securely exposing storage options directly from `supawrapper/storage` (e.g., `MemoryStorage`, `createPersistentStorage`).
-- **Improved Strict TypeScript Generics**: Heavily upgraded the `ClientWrapper` type constraints bringing stricter and safer schema inferences.
-- **Preset Configuration Overrides**: Natively added configurations for smart `presets` directly within `TableBehaviour`, allowing customized mapping for internal keys like `isActiveKey` and `userIdKey`.
 
 ---
 

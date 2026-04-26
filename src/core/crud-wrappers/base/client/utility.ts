@@ -140,7 +140,7 @@ export class UtilityMethods<
 
   protected applyFilters<Table>(
     query: any,
-    opts: Partial<GetOptions | UpdateOptions>
+    opts: Partial<GetOptions | UpdateOptions> = {}
   ) {
     const { eq, or, contains, overlaps, ilike, inValue, gt, gte, lt, lte } = opts as any;
 

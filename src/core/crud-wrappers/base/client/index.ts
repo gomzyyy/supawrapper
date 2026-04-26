@@ -3,6 +3,7 @@ import {
   type Callbacks,
   type Response,
   type TableBehaviour,
+  type GetByIdOptions
 } from "../../../../types/index.js";
 import { APIResponse } from "../../../response/index.js";
 import { APIError, ValidationError } from "../../../index.js";
@@ -367,11 +368,13 @@ export class BaseClientCRUDWrapper<
    * @param cbs Optional callbacks binding loading scopes.
    * @returns A promise unlocking a unified Response containing the requested record.
    */
-  async getById(tableId: string | number, cbs?: Callbacks): Promise<Response<Table>> {
+  async getById(tableId: string | number, opts: GetByIdOptions = { select: "*" }, cbs?: Callbacks): Promise<Response<Table>> {
     return this.withLoading(cbs, async () => {
       try {
         const cacheKey = this.createIdCacheKey(tableId);
         const cached = this.cache.get<Table>(cacheKey);
+
+        const selectString = opts?.select || "*";
 
         if (cached) {
           return new APIResponse(cached.data, Flag.Success).build();
@@ -379,7 +382,7 @@ export class BaseClientCRUDWrapper<
 
         const { data, error } = await this.supabase
           .from(this.tableName)
-          .select("*")
+          .select(selectString)
           .eq("id", tableId)
           .maybeSingle();
 
@@ -468,7 +471,7 @@ export class BaseClientCRUDWrapper<
    * @returns A promise resolving to a unified Response struct filled with array or object dataset including pagination metadata.
    */
   async get(
-    getOptions: GetOptions,
+    getOptions?: GetOptions,
     cbs?: Callbacks
   ): Promise<Response<Table | Table[]>> {
     return this.withLoading(cbs, async () => {
@@ -501,11 +504,12 @@ export class BaseClientCRUDWrapper<
           searchFields,
           page = 1,
           offset,
+          select = "*"
         } = getOptions as any;
 
         let query: any = this.supabase
           .from(this.tableName)
-          .select("*", { count: "exact" });
+          .select(select, { count: "exact" });
 
         query = this.applyFilters(query, getOptions);
 

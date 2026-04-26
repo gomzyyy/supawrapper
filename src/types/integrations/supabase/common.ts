@@ -26,6 +26,13 @@ export interface CRUDOptions<Table> {
   searchFields?: (keyof Table)[];
   page?: number;
   offset?: number;
+
+  //new
+  select?: string | "*";
+}
+
+export interface GetByIdOptions {
+  select?: string | "*";
 }
 
 type OmittedUpdateTableOpts =
