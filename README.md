@@ -10,21 +10,13 @@
 
 ---
 
-# 🚀 Version v1.1.0 - Minor Enhancement!
+# 🚀 Version v1.3.0 - Frontend-first Minor Update!
 
-## ✨ **Issue #12 SOLVED** - Enhanced Get Methods!
+## ✨ **Issue #15 SOLVED** - Browser-friendly integration
 
-- **🎯 Optional Get Arguments**: The `get()` method now accepts optional arguments! Simply call `table.get()` without any parameters for quick data retrieval.
-- **🔧 Custom Select Support**: All get-related methods (`get()`, `getById()`) now support `{select?: string}` in options to customize your select queries!
-- **⚡ Improved Developer Experience**: More flexible and intuitive API for data retrieval operations.
-
----
-
-# ⚒️ Previous Patch v1.0.11 includes:
-
-- **Optional Zod Dependency**: Refactored internal Zod type imports making the Zod package *completely optional*. You now only need to install `zod` if you strictly want to utilize the built-in schema validation features!
-
----
+- **✅ Removed `node:fs` dependency**: `supawrapper` no longer depends on `node:fs`, making it easy to bundle and use directly in frontend and browser environments.
+- **⚡ Frontend-ready install**: This update is designed to integrate in minutes without backend-only filesystem hurdles.
+- **🧩 Smooth browser usage**: Continue using `MemoryStorage` in the browser and enjoy a fast, lightweight wrapper experience.
 
 > [!NOTE]
 > Supawrapper is a newly launched open-source package built on top of the Supabase client. If you encounter any issues, unexpected behaviour, or want to suggest improvements, **please open an issue on the [GitHub repository](https://github.com/gomzyyy/supawrapper/issues)**. Your feedback directly shapes the roadmap.
@@ -99,7 +91,7 @@ const users = new ClientWrapper<User, typeof supabase>(supabase, "users");
 
 - Fully typed CRUD wrapper
 - Built-in caching layer with read-through support, auto-invalidation, configurable TTL, and zero-config fallback storage (Uses Heap under the hood for speed; `MemoryStorage`)
-- Configurable cache storage via exposed api `createPersistentStorage` (NodeJS only, Persistant) and class `MemoryStorage` (Browser and NodeJS, In-Memory)
+- Configurable cache storage using class `MemoryStorage` (Browser and NodeJS, In-Memory)
 - Schema validation with Zod
 - Auto-handled timestamps
 - Presets (smart reusable queries)
@@ -119,6 +111,8 @@ const users = new ClientWrapper<User, typeof supabase>(supabase, "users");
 npm install supawrapper @supabase/supabase-js zod
 ```
 
+> **Browser-friendly:** `supawrapper` is now easier to integrate in frontend builds because it no longer depends on `node:fs`.
+
 ---
 
 ## 🚀 Quick Start
@@ -126,10 +120,7 @@ npm install supawrapper @supabase/supabase-js zod
 ```ts
 import { createClient } from "@supabase/supabase-js";
 import { ClientWrapper, RealtimeListener, BroadcastChannel } from "supawrapper";
-import { createPersistentStorage, MemoryStorage } from "supawrapper/storage";
-
-// NodeJS only, Persistant
-const persistentStorage = createPersistentStorage("./cache");
+import { MemoryStorage } from "supawrapper/storage";
 
 // Browser and NodeJS, In-Memory
 const memoryStorage = new MemoryStorage();
@@ -354,23 +345,19 @@ function getDefaultStorage(storage?: StorageAdapter): StorageAdapter {
 - If a user provides a custom storage adapter, Supawrapper prioritizes and uses that.
 - Otherwise, it falls back to the inbuilt storage adapter that relies on **Heap storage** (`MemoryStorage`) by default.
 - This default storage is **non-persistent** and will be entirely cleared upon every initialization.
-- Developers must explicitly provide discrete storage adapters for true persistence.
-- If using **Node.js**, you can easily configure persistent storage by utilizing the `createPersistentStorage` API exposed natively by `supawrapper/storage`.
+- Developers can provide a browser-compatible custom storage adapter if they need cross-session persistence.
 
 ### Using Exported Storage Adapters
 
 Supawrapper exposes its internal `StorageAdapter` implementations directly, so you don't have to rewrite boilerplate cache logic:
 
-> **⚠️ Important:** The `createPersistentStorage` API relies on the internal `node:fs` and `node:path` modules. It might throw an error in inappropriate environments (such as browsers or edge runtimes). Therefore, make absolutely sure you have a proper Node.js environment when attempting to use it!
-
 ```ts
-import { MemoryStorage, createPersistentStorage } from "supawrapper/storage";
+import { MemoryStorage } from "supawrapper/storage";
 
 const users = new ClientWrapper<User, typeof supabase>(supabase, "users", {
   cachingStrategy: {
     enabled: true,
-    // Safely writes persistence caching to a local JSON file (Node.js only)
-    storage: createPersistentStorage("./cache/users"),
+    storage: new MemoryStorage(),
   }
 });
 ```
