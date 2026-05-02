@@ -1,1 +1,1 @@
-export { MemoryStorage, createPersistentStorage } from "../core/store/index.js"
+export { MemoryStorage } from "../core/store/index.js"
