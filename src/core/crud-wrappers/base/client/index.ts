@@ -331,7 +331,7 @@ export class BaseClientCRUDWrapper<
           !!this.behaviour.validator?.enabled
         );
 
-        const payloadWithUpdatedTimestamps = this.updateTimestamps<Partial<Table>>(validatedPayload, true);
+        const payloadWithUpdatedTimestamps = this.updateTimestamps<Partial<Table>>(validatedPayload);
 
         const { data, error } = await this.supabase
           .from(this.tableName)
@@ -432,7 +432,7 @@ export class BaseClientCRUDWrapper<
           !!this.behaviour.validator?.enabled
         );
 
-        const payloadWithUpdatedTimestamps = this.updateTimestamps(validatedPayload, true);
+        const payloadWithUpdatedTimestamps = this.updateTimestamps(validatedPayload);
 
         let query = this.supabase
           .from(this.tableName)

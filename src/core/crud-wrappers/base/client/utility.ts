@@ -41,17 +41,26 @@ export class UtilityMethods<
     return null;
   }
 
-  protected updateTimestamps<P>(payload: P, isUpdate: boolean = false): P {
+  /**
+   * @update Version: 1.3.1
+   * @fix Github issue #17; [created_at] field was accidentially updated when auto-timestamp wenabled.
+   * @notice [message to users using using version < 1.3.1, please upgrade to the latest version atleast to version 1.3.1 to see the changes.]
+   * @accountability Appologies to all who are faced issue with auto-timestamp feature and now the issue has been addressed and you can use auto-timestamp feature.
+   */
+
+  protected updateTimestamps<P>(payload: P): P {
     if (!this.behaviour?.timestamps?.autoTimestamps) return payload;
 
-    const { createdAtKey = "created_at", updatedAtKey } = this.behaviour.timestamps?.config ?? {};
+    const { updatedAtKey } = this.behaviour.timestamps?.config ?? {};
     const now = new Date().toISOString();
 
     const applyToSingle = <T>(item: T): T => {
       const newItem = { ...item } as Record<string, unknown>;
-      if (!isUpdate && createdAtKey) {
-        newItem[createdAtKey] = now;
-      }
+      // NEW_UPDATE: We should not update created_at whuile updating.
+
+      // if (!isUpdate && createdAtKey) {
+      //   newItem[createdAtKey] = now;
+      // }
       if (updatedAtKey) {
         newItem[updatedAtKey] = now;
       }
