@@ -52,6 +52,29 @@ export interface TableBehaviour<Schema = unknown> {
     userIdKey?: string;
   }
 }
+
+type ClientMethodGETResponse<T> = {
+    data: T | T[] | null;
+    pagination: {
+      page: number;
+      limit: number;
+      total: number | null;
+      totalPages: number;
+    };
+  };
+
+export interface ClientMethodResponse<Table> {
+  createOne: Table;
+  createMany: Table[];
+  upsertOne: Table;
+  upsertMany: Table[];
+  updateById: Table;
+  getById: Table;
+  get: ClientMethodGETResponse<Table>
+  batchUpdate:Table[];
+  deleteOneById:null;
+  setSoftDeletedById:Table
+}
 export interface BucketBehaviour {
   debug?: DebugConfig;
 }

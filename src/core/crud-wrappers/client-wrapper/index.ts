@@ -9,7 +9,6 @@ import type {
 import { Flag, } from "../../../types/index.js";
 import { BaseClientCRUDWrapper } from "../base/client/index.js";
 import { APIResponse } from "../../../core/response/index.js";
-import { APIError } from "../../../core/errors/index.js";
 import { Presets } from "./presets/presets.js";
 import { Chainable } from "../base/client/chainable.js";
 import { getDefaultTableBehaviour } from "./defaults.js";
@@ -78,10 +77,11 @@ export class ClientWrapper<
 
         if (error) {
           console.error("Error checking existence:", error);
-          throw new APIError(
-            "Failed to check existence",
-            this.getDebugLogs({ error })
-          );
+          this.throwApiError(error, {
+            tableId,
+            operation: "exists",
+            rawOutput: { data, error },
+          }, "Failed to check existence");
         }
         return new APIResponse(!!data, Flag.Success).build();
       } catch (error) {
@@ -108,7 +108,11 @@ export class ClientWrapper<
         const { count, error } = await query;
 
         if (error) {
-          throw new APIError("Failed to count records", error.hint, error);
+          this.throwApiError(error, {
+            providedOptions: opts,
+            operation: "count",
+            rawOutput: { count, error },
+          }, "Failed to count records");
         }
 
         return new APIResponse(count ?? 0, Flag.Success).build();

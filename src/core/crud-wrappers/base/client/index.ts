@@ -6,10 +6,10 @@ import {
   type GetByIdOptions
 } from "../../../../types/index.js";
 import { APIResponse } from "../../../response/index.js";
-import { APIError, ValidationError } from "../../../index.js";
+import { ValidationError } from "../../../index.js";
 import { UtilityMethods } from "./utility.js";
 import { CacheClient } from "../../../../core/store/index.js";
-import type { SupabaseClientAdapter } from "../../../../types/index.js";
+import type { SupabaseClientAdapter, ClientMethodResponse } from "../../../../types/index.js";
 
 /**
  * @undertesting - Please note that BaseClientCRUDWrapper is currently under testing and may undergo significant changes. The current implementation serves as a foundational structure for CRUD operations, but we are actively working on refining the API, enhancing error handling, and optimizing performance. We recommend using this class for testing and prototyping purposes, but be prepared for potential breaking changes in future releases as we continue to improve and expand its capabilities.
@@ -71,7 +71,7 @@ export class BaseClientCRUDWrapper<
         const result = await queryCallback(query, payload);
 
         if (result.error) {
-          const hints = this.getDebugLogs({
+          this.throwApiError(result.error, {
             rawPayload: data,
             injectedPayload: payload,
             operation: "rawQuery",
@@ -80,7 +80,6 @@ export class BaseClientCRUDWrapper<
               error: result.error,
             },
           });
-          throw new APIError(result.error.message, hints, result.error);
         }
 
         return new APIResponse(result?.data || null, Flag.Success).build();
@@ -102,7 +101,7 @@ export class BaseClientCRUDWrapper<
     data: Partial<Table> | Table,
     cbs?: Callbacks,
     opts = { allowFalsy: false }
-  ): Promise<Response<Table>> {
+  ): Promise<Response<ClientMethodResponse<Table>['createOne']>> {
     return this.withLoading(cbs, async () => {
       try {
         const newPayload = this.preparePayload(data, cbs, opts.allowFalsy);
@@ -122,7 +121,7 @@ export class BaseClientCRUDWrapper<
           .maybeSingle();
 
         if (error) {
-          const hints = this.getDebugLogs({
+          this.throwApiError(error, {
             rawPayload: data,
             injectedPayload: payloadWithUpdatedTimestamps,
             operation: "createOne",
@@ -131,7 +130,6 @@ export class BaseClientCRUDWrapper<
               error,
             },
           });
-          throw new APIError(error.message, hints, error);
         }
 
         this.invalidateTableQueryCaches();
@@ -151,7 +149,7 @@ export class BaseClientCRUDWrapper<
    */
   async createMany(
     arr: Partial<Table>[] | Table[]
-  ): Promise<Response<Table[]>> {
+  ): Promise<Response<ClientMethodResponse<Table>['createMany']>> {
     return this.withLoading(undefined, async () => {
       try {
         const sourcePayloads = Array.isArray(arr) ? arr : [arr];
@@ -171,7 +169,7 @@ export class BaseClientCRUDWrapper<
           .select("*");
 
         if (error) {
-          const hints = this.getDebugLogs({
+          this.throwApiError(error, {
             rawPayload: arr,
             injectedPayload: payloadsWithUpdatedTimestamps,
             operation: "createMany",
@@ -180,7 +178,6 @@ export class BaseClientCRUDWrapper<
               error,
             },
           });
-          throw new APIError(error.message, hints, error);
         }
 
         this.invalidateTableQueryCaches();
@@ -201,7 +198,7 @@ export class BaseClientCRUDWrapper<
   async upsertOne(
     data: Partial<Table> | Table,
     cbs?: Callbacks
-  ): Promise<Response<Table>> {
+  ): Promise<Response<ClientMethodResponse<Table>['upsertOne']>> {
     return this.withLoading(cbs, async () => {
       try {
         const payload = this.preparePayload(data, cbs);
@@ -225,13 +222,12 @@ export class BaseClientCRUDWrapper<
           .maybeSingle();
 
         if (error) {
-          const hints = this.getDebugLogs({
+          this.throwApiError(error, {
             rawPayload: data,
             injectedPayload: finalPayload,
             operation: "upsertOne",
             rawOutput: { data: apiData, error },
           });
-          throw new APIError(error.message, hints, error);
         }
 
         if (apiData && typeof apiData === 'object' && "id" in apiData) {
@@ -255,7 +251,7 @@ export class BaseClientCRUDWrapper<
   async upsertMany(
     data: (Partial<Table> | Table)[],
     cbs?: Callbacks
-  ): Promise<Response<Table[]>> {
+  ): Promise<Response<ClientMethodResponse<Table>['upsertMany']>> {
     return this.withLoading(cbs, async () => {
       try {
         const payloads = data.map((d) => this.preparePayload(d, cbs));
@@ -282,13 +278,12 @@ export class BaseClientCRUDWrapper<
           .select("*");
 
         if (error) {
-          const hints = this.getDebugLogs({
+          this.throwApiError(error, {
             rawPayload: data,
             injectedPayload: finalPayloads,
             operation: "upsertMany",
             rawOutput: { data: apiData, error },
           });
-          throw new APIError(error.message, hints, error);
         }
 
         this.invalidateTableQueryCaches();
@@ -316,7 +311,7 @@ export class BaseClientCRUDWrapper<
     opts: {
       allowFalsy: boolean;
     } = { allowFalsy: false }
-  ): Promise<Response<Table>> {
+  ): Promise<Response<ClientMethodResponse<Table>['updateById']>> {
     return this.withLoading(cbs, async () => {
       try {
         const newPayload = this.preparePayload<Partial<Table>>(update, cbs, opts.allowFalsy);
@@ -341,7 +336,7 @@ export class BaseClientCRUDWrapper<
           .maybeSingle();
 
         if (error) {
-          const hints = this.getDebugLogs({
+          this.throwApiError(error, {
             rawPayload: update,
             injectedPayload: payloadWithUpdatedTimestamps,
             operation: "updateById",
@@ -350,7 +345,6 @@ export class BaseClientCRUDWrapper<
               error,
             },
           });
-          throw new APIError(error.message, hints, error);
         }
 
         this.cache.delete(this.createIdCacheKey(tableId));
@@ -368,7 +362,7 @@ export class BaseClientCRUDWrapper<
    * @param cbs Optional callbacks binding loading scopes.
    * @returns A promise unlocking a unified Response containing the requested record.
    */
-  async getById(tableId: string | number, opts: GetByIdOptions = { select: "*" }, cbs?: Callbacks): Promise<Response<Table>> {
+  async getById(tableId: string | number, opts: GetByIdOptions = { select: "*" }, cbs?: Callbacks): Promise<Response<ClientMethodResponse<Table>['getById']>> {
     return this.withLoading(cbs, async () => {
       try {
         const cacheKey = this.createIdCacheKey(tableId);
@@ -387,7 +381,7 @@ export class BaseClientCRUDWrapper<
           .maybeSingle();
 
         if (error) {
-          const hints = this.getDebugLogs({
+          this.throwApiError(error, {
             tableId,
             operation: "getById",
             rawOutput: {
@@ -395,7 +389,6 @@ export class BaseClientCRUDWrapper<
               error,
             },
           });
-          throw new APIError(error.message, hints, error);
         }
 
         this.cache.set<Table | null>(cacheKey, data || null);
@@ -417,7 +410,7 @@ export class BaseClientCRUDWrapper<
     update: Partial<Table>,
     filters: UpdateOptions,
     cbs?: Callbacks
-  ): Promise<Response<Table[]>> {
+  ): Promise<Response<ClientMethodResponse<Table>['batchUpdate']>> {
     return this.withLoading(cbs, async () => {
       try {
         if (this.isEmptyPayload(update)) {
@@ -444,7 +437,7 @@ export class BaseClientCRUDWrapper<
         const { data, error } = await query;
 
         if (error) {
-          const hints = this.getDebugLogs({
+          this.throwApiError(error, {
             rawPayload: update,
             injectedPayload: payloadWithUpdatedTimestamps,
             operation: "batchUpdate",
@@ -453,7 +446,6 @@ export class BaseClientCRUDWrapper<
               error,
             },
           });
-          throw new APIError(error.message, hints, error);
         }
 
         this.invalidateTableQueryCaches();
@@ -473,22 +465,12 @@ export class BaseClientCRUDWrapper<
   async get(
     getOptions?: GetOptions,
     cbs?: Callbacks
-  ): Promise<Response<Table | Table[]>> {
+  ): Promise<Response<ClientMethodResponse<Table>['get']>> {
     return this.withLoading(cbs, async () => {
       try {
         const cacheKey = this.createQueryCacheKey(getOptions);
 
-        type QueryPayload = {
-          data: Table | Table[] | null;
-          pagination: {
-            page: number;
-            limit: number;
-            total: number | null;
-            totalPages: number;
-          };
-        };
-
-        const cached = this.cache.get<QueryPayload>(cacheKey);
+        const cached = this.cache.get<ClientMethodResponse<Table>['get']>(cacheKey);
 
         if (cached) {
           return new APIResponse(cached.data, Flag.Success).build();
@@ -571,7 +553,7 @@ export class BaseClientCRUDWrapper<
         const { data, error, count } = await query;
 
         if (error) {
-          const hints = this.getDebugLogs({
+          this.throwApiError(error, {
             providedOptions: getOptions,
             operation: "get",
             rawOutput: {
@@ -580,10 +562,9 @@ export class BaseClientCRUDWrapper<
               count,
             },
           });
-          throw new APIError(error.message, hints, error);
         }
 
-        const payloadToCache: QueryPayload = {
+        const payloadToCache: ClientMethodResponse<Table>['get'] = {
           data,
           pagination: {
             page,
@@ -596,7 +577,7 @@ export class BaseClientCRUDWrapper<
           },
         };
 
-        this.cache.set<QueryPayload>(cacheKey, payloadToCache);
+        this.cache.set<ClientMethodResponse<Table>['get']>(cacheKey, payloadToCache);
 
         return new APIResponse(payloadToCache, Flag.Success).build();
       } catch (error) {
@@ -613,7 +594,7 @@ export class BaseClientCRUDWrapper<
   async deleteOneById(
     tableId: string | number,
     cbs?: Callbacks
-  ): Promise<Response<null>> {
+  ): Promise<Response<ClientMethodResponse<Table>['deleteOneById']>> {
     return this.withLoading(cbs, async () => {
       try {
         const { error } = await this.supabase
@@ -622,14 +603,13 @@ export class BaseClientCRUDWrapper<
           .eq("id", tableId);
 
         if (error) {
-          const hints = this.getDebugLogs({
+          this.throwApiError(error, {
             tableId,
             operation: "deleteOneById",
             rawOutput: {
               error,
             },
           });
-          throw new APIError(error.message, hints, error);
         }
 
         this.cache.delete(this.createIdCacheKey(tableId));
@@ -652,7 +632,7 @@ export class BaseClientCRUDWrapper<
     tableId: string | number,
     intent: boolean,
     cbs?: Callbacks
-  ) {
+  ):Promise<Response<ClientMethodResponse<Table>['setSoftDeletedById']>> {
     return this.withLoading(cbs, async () => {
       try {
         if (!this.behaviour.supportsSoftDeletion) {
@@ -685,7 +665,7 @@ export class BaseClientCRUDWrapper<
           .maybeSingle();
 
         if (error) {
-          const hints = this.getDebugLogs({
+          this.throwApiError(error, {
             tableId,
             shouldDelete: intent,
             configuredSoftDeleteKeys: this.behaviour.softDeleteConfig,
@@ -695,7 +675,6 @@ export class BaseClientCRUDWrapper<
               error,
             },
           });
-          throw new APIError(error.message, hints, error);
         }
 
         this.cache.delete(this.createIdCacheKey(tableId));

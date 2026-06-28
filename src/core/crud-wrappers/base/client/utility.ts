@@ -1,5 +1,5 @@
 import { APIResponse } from "../../../response/index.js";
-import { BaseError, ValidationError } from "../../../errors/index.js";
+import { BaseError, ValidationError, APIError } from "../../../errors/index.js";
 import type {
   Callbacks,
   Response,
@@ -30,15 +30,47 @@ export class UtilityMethods<
   }
 
   protected getDebugLogs(metaData: Record<string, unknown>) {
-
-    if (this.behaviour.debug?.returnHintsOnError) {
-      return {
-        ...metaData,
-        table: this.tableName,
-        tableBehaviour: this.behaviour,
-      };
+    if (!this.behaviour.debug?.returnHintsOnError) {
+      return null;
     }
-    return null;
+
+    const hintsConfig = this.behaviour.debug?.hintsConfig ?? {};
+    const {
+      includeTableMetadata = true,
+      includeRawResults = true,
+      includeArguments = true,
+    } = hintsConfig;
+
+    const result: Record<string, unknown> = {};
+
+    if (includeArguments) {
+      Object.assign(result, metaData);
+    } else {
+      if ("operation" in metaData) {
+        result.operation = metaData.operation;
+      }
+    }
+
+    if (includeTableMetadata) {
+      result.table = this.tableName;
+      result.tableBehaviour = this.behaviour;
+    }
+
+    if (!includeRawResults) {
+      delete result.rawOutput;
+    }
+
+    return result;
+  }
+
+  protected throwApiError(
+    error: { message?: string; [key: string]: any },
+    metadata?: Record<string, unknown>,
+    customMessage?: string
+  ): never {
+    const message = customMessage ?? error.message ?? "API Error";
+    const hints = this.getDebugLogs(metadata ?? {});
+    throw new APIError(message, hints, error);
   }
 
   /**

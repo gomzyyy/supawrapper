@@ -1,5 +1,5 @@
 import { APIResponse } from "../../response/index.js";
-import { BaseError } from "../../errors/index.js";
+import { BaseError, APIError } from "../../errors/index.js";
 import type {
   BucketBehaviour,
   Callbacks,
@@ -52,15 +52,48 @@ export class BucketUtilityMethods<TClient extends SupabaseClientAdapter> {
     });
   }
 
-  protected getDebugLogs(metaData: any) {
-    if (this.behaviour.debug?.returnHintsOnError) {
-      return {
-        ...metaData,
-        bucket: this.bucketName,
-        bucketBehaviour: this.behaviour,
-      };
+  protected getDebugLogs(metaData: Record<string, unknown>) {
+    if (!this.behaviour.debug?.returnHintsOnError) {
+      return null;
     }
-    return null;
+
+    const hintsConfig = this.behaviour.debug?.hintsConfig ?? {};
+    const {
+      includeTableMetadata = true,
+      includeRawResults = true,
+      includeArguments = true,
+    } = hintsConfig;
+
+    const result: Record<string, unknown> = {};
+
+    if (includeArguments) {
+      Object.assign(result, metaData);
+    } else {
+      if ("operation" in metaData) {
+        result.operation = metaData.operation;
+      }
+    }
+
+    if (includeTableMetadata) {
+      result.bucket = this.bucketName;
+      result.bucketBehaviour = this.behaviour;
+    }
+
+    if (!includeRawResults) {
+      delete result.rawOutput;
+    }
+
+    return result;
+  }
+
+  protected throwApiError(
+    error: { message?: string; [key: string]: any },
+    metadata?: Record<string, unknown>,
+    customMessage?: string
+  ): never {
+    const message = customMessage ?? error.message ?? "Storage Error";
+    const hints = this.getDebugLogs(metadata ?? {});
+    throw new APIError(message, hints, error);
   }
 
   protected async withLoading<T>(
