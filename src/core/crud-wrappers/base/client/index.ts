@@ -350,7 +350,7 @@ export class BaseClientCRUDWrapper<
         this.cache.delete(this.createIdCacheKey(tableId));
         this.invalidateTableQueryCaches();
 
-        return new APIResponse(data || null, Flag.Success).build();
+        return new APIResponse(data ?? null, Flag.Success).build();
       } catch (error) {
         return this.handleError(error);
       }
@@ -487,7 +487,7 @@ export class BaseClientCRUDWrapper<
           page = 1,
           offset,
           select = "*"
-        } = getOptions as any;
+        } = (getOptions as any ?? {});
 
         let query: any = this.supabase
           .from(this.tableName)
@@ -513,6 +513,13 @@ export class BaseClientCRUDWrapper<
           query = query.range(from, to);
         }
 
+        if (sortBy) {
+          const ascending = orderBy !== "dec";
+          query = query.order(sortBy, {
+            ascending,
+          });
+        }
+
         if (limit && !single && !maybeSingle) {
           query = query.limit(limit);
         }
@@ -524,18 +531,6 @@ export class BaseClientCRUDWrapper<
         if (maybeSingle && !single) {
           query = query.maybeSingle();
         }
-
-        if (sortBy) {
-          const orderStrToBool: Record<"asc" | "dec", boolean> = {
-            asc: true,
-            dec: false,
-          };
-          const ascending = orderStrToBool[orderBy as "asc" | "dec"] || true;
-          query = query.order(sortBy, {
-            ascending,
-          });
-        }
-
         if (search?.trim()) {
           const trimmed = search.trim();
 

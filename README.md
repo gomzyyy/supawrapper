@@ -41,7 +41,7 @@ const { data, error } = await supabase
 - ❌ **Logic scattered across code**: Common queries have to be rewritten every time they're needed.
 - ❌ **Silent failures**: Invalid data types and schemas pass silently without middleware.
 - ❌ **Debugging is manual and painful**: When a query fails, you lack robust built-in logging context.
-- ❌ **Timestamps are manual**: Easy to forget injecting `created_at` or `updated_at`.
+- ❌ **Timestamps are manual**: Easy to forget injecting `updated_at`.
 
 ---
 
@@ -555,7 +555,7 @@ Invalid data throws a meaningful error before it ever reaches Supabase.
 
 # ⏱ Auto Timestamps
 
-Enable `autoTimestamps` to have `created_at` and `updated_at` managed for you. Key names are configurable.
+Enable `autoTimestamps` to have `updated_at` managed for you. Key names are configurable.
 
 ```ts
 const users = new ClientWrapper<User, typeof supabase>(
